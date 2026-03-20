@@ -1,0 +1,4 @@
+beautifulsoup4==4.12.3
+python-dotenv==1.2.1
+rapidfuzz==3.14.3
+requests==2.31.0
