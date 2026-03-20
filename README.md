@@ -93,10 +93,11 @@ python single/pdf.py
     使用腾讯云 SDK 需要额外安装 `pip install tencentcloud-sdk-python`
 
 2. 命令行参数
-    - `-b` / `--base`：
+    - `-b` / `--base`：基础工作目录
     - `-s` / `--min`：第一张图的序号
     - `-d` / `--max`：最后一张图的序号加一，除了拍摄时都不能为零
     - `-v` / `--vol`：首卷编号，如果是番外或设定集则指定为 `0`
+    - `-p` / `--pdf`：从 PDF 获取图片，默认从阅读器采集
     - `--app-point`：阅读器在任务栏的坐标
     - `--nxt-point`：用于点击下一页的坐标
     - `--cht-point`：消息平台在任务栏的坐标
