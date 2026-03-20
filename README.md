@@ -18,7 +18,7 @@
     ```
 
 2. 由于配置较为复杂，推荐直接修改 `CONFIG` 变量
-    - 配置说明详见注释
+    - 配置说明详见脚本内注释
     - 也可在全局配置中通过 `path.src` 或 `local.path` 条目创建本地配置文件
 
 ### 用法
@@ -80,15 +80,17 @@ python single/pdf.py -s ...
 将图片小说或转换为 txt 文字
 
 1. 提取图片 PDF 文件的图片，或对仅支持阅读器访问的小说实现模拟翻页、截图并通过 OCR 转换为文字
-2. **后者仅适用部分性质良好的阅读器，一般不推荐使用**
+2. **后者仅适用部分流程相似的阅读器，一般不推荐使用**
 
 ### 配置
 
 1. 安装所需包
 
     ```shell
-    pip install requests pyautogui tqdm pillow pycnnum
+    pip install tqdm pyautogui pillow requests pymupdf pycnnum
     ```
+
+    使用腾讯云 SDK 需要额外安装 `pip install tencentcloud-sdk-python`
 
 2. 命令行参数
     - `-s` / `--src`：输入目录路径，将所有待处理 PDF 文件置于其中
@@ -96,8 +98,9 @@ python single/pdf.py -s ...
 
 3. 可调节常量
 
+### 用法
+
 ```shell
-pip install pymupdf tencentcloud-sdk-python
 python single/ocr.py
 ```
 

@@ -4,9 +4,11 @@ import re
 import json
 import base64
 import ctypes
+import argparse
+
+import fitz
 import requests
 import pyautogui
-import argparse
 
 from time import sleep
 from tqdm import tqdm
@@ -82,7 +84,6 @@ def sub(name):
     return result
 
 def convert_pdf(input_file_path):
-    import fitz
     page_num = 1
     dir_path = sub(input_file_path.split('.')[-2])
     if not os.path.exists(dir_path):
