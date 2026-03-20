@@ -15,45 +15,65 @@ from tqdm import tqdm
 from PIL import Image
 from pycnnum import num2cn
 
+pyautogui.FAILSAFE = True
 parser = argparse.ArgumentParser()
-parser.add_argument("--min", type=int, default=0)
-parser.add_argument("--max", type=int, default=0)
-arg = parser.parse_args()
 
-BASE_PATH = ""
-if sys.platform == "win32":
-    BASE_PATH = "C:/Users/Ichinoe/Downloads"
-elif sys.platform == "linux":
-    BASE_PATH = "/media/ichinoe/Download/raw-00"
+parser.add_argument("-b", "--base", type=str)
+parser.add_argument("-s", "--min", type=int)
+parser.add_argument("-d", "--max", type=int)
+parser.add_argument("-v", "--vol", type=int)
 
-MIN_INDEX = arg.min                       # 第一张图的序号，基本不用变
-MAX_INDEX = arg.max                       # 最后一张图的序号加一，除了拍摄时都不能为零
-MIN_VOLUME = 0                            # 首卷序号，部分书籍首卷是番外
+parser.add_argument("--app-point", nargs="+", type=int)
+parser.add_argument("--nxt-point", nargs="+", type=int)
 
-APP_POINT = (110, 1400)                   # BlueStack 在一号位的坐标
-NEXT_POINT = (180, 1280)                  # 用于点击下一页的坐标
+parser.add_argument("--cht-point", nargs="+", type=int)
+parser.add_argument("--tag-point", nargs="+", type=int)
+parser.add_argument("--box-point", nargs="+", type=int)
+parser.add_argument("--hnt-point", nargs="+", type=int)
 
-CHAT_POINT = (180, 1400)                  # QQ/TIM 在二号位的坐标
-TAG_POINT = (300, 150)                    # 需要发送消息的对象在消息列表的坐标
-INBOX_POINT = (800, 1200)                 # 输入框的坐标
-SEND_POINT = (2440, 1320)                 # 发送按钮的坐标
+parser.add_argument("--chck-point", nargs="+", type=int)
+parser.add_argument("--halt-color", nargs="+", type=int)
+parser.add_argument("--send-color", nargs="+", type=int)
 
-CHECK_POINT = (2350, 1200)                # 检查这个位置的像素，以决定是否停止拍摄
-HALT_COLOR = (255, 99, 72)                # 被检查像素的目标颜色 RGB
-LINE_COLOR = (122, 122, 122)              # 新章节线的颜色
+parser.add_argument("--chapter-lne", type=int)
+parser.add_argument("--line-length", type=int)
+parser.add_argument("--rotat-angle", type=int)
+parser.add_argument("--l-threshold", type=int)
 
-CHAPTER_LINE = 76                         # 新章节线在处理后图片所在的行数
-LINE_LENGTH = 1235                        # 新章节线颜色的像素个数
-ROTATE_ANGLE = 90                         # 横屏拍摄后如何旋转到正确位置
-LEFT_THRESHOLD = 40                       # 判定为新一段的缩进临界值
+parser.add_argument("--shot-region", nargs="+", type=int)
+parser.add_argument("--crop-region", nargs="+", type=int)
 
-SHOT_REGION = (85, 50, 2340, 1315)        # 拍摄的范围，前两个是坐标，后两个是长和宽
-CROP_REGION = (50, 30, 2240, 1276)        # 裁剪的范围，前后两个似乎都是坐标
+args = parser.parse_args()
+BASE_PATH = os.path.expanduser(args.base)
 
-NUM = "[0123456789]"                      # 阿拉伯数字和中文数字
+MIN_INDEX = args.min
+MAX_INDEX = args.max
+MIN_VOLUME = args.vol
+
+APP_POINT = tuple(args.app_point)[:2]
+NXT_POINT = tuple(args.nxt_point)[:2]
+
+CHT_POINT = tuple(args.cht_point)[:2]
+TAG_POINT = tuple(args.tag_point)[:2]
+BOX_POINT = tuple(args.box_point)[:2]
+SEND_POINT = tuple(args.hnt_point)[:2]
+
+CHCK_POINT = tuple(args.chck_point)[:2]
+HALT_COLOR = tuple(args.halt_color)[:3]
+LINE_COLOR = tuple(args.send_color)[:3]
+
+CHAPTER_LNE = args.chapter_lne
+LINE_LENGTH = args.line_length
+ROTAT_ANGLE = args.rotat_angle
+L_THRESHOLD = args.l_threshold
+
+SHOT_REGION = tuple(args.shot_region)[:4]
+CROP_REGION = tuple(args.crop_region)[:4]
+
+AR_NUM = "[0123456789]"
 CN_NUM = "[〇零一两二三四五六七八九十百千万]"
-CHAPTERS = [                              # 章节序号标注方式
-    f"第{NUM}+话",
+CHAPTERS = [
+    f"第{AR_NUM}+话",
     f"第{CN_NUM}+章",
     f"(番外|特典){CN_NUM}*",
     "序章|序幕|引子",
@@ -62,9 +82,10 @@ CHAPTERS = [                              # 章节序号标注方式
     "后记|完结感言"
 ]
 
-CHAPTER_REG = f"^({'|'.join(CHAPTERS)})"  # 未被捕获的都是非章节（通知或请假条等）
+CHAPTER_REG = f"^({'|'.join(CHAPTERS)})"
 REPLACE_REG = "### \\1　"
-VOLUME_REG = (                            # 可作为卷首章节的标号，若分不开可临时添加
+
+VOLUME_REG = (
     "^(第0话)"
     "|^(第一章)"
     "|^(序章)"
@@ -72,18 +93,16 @@ VOLUME_REG = (                            # 可作为卷首章节的标号，若
     "|^(引子)"
 )
 
-INTERVAL = 0.4
-SHORT_INTERVAL = INTERVAL / 2
-LONG_INTERVAL = INTERVAL * 2
-pyautogui.FAILSAFE = True                 # 开启后，快速将光标移动到屏幕四角可停止进程
+NORM_INTERVAL = 0.4
+SHRT_INTERVAL = NORM_INTERVAL / 2
+LONG_INTERVAL = NORM_INTERVAL * 2
 
 def sub(name):
     result = os.path.join(BASE_PATH, name)
-    if not os.path.exists(result):
-        os.mkdir(result)
+    os.makedirs(result, exist_ok=True)
     return result
 
-def convert_pdf(input_file_path):
+def convert(input_file_path):
     page_num = 1
     dir_path = sub(input_file_path.split('.')[-2])
     if not os.path.exists(dir_path):
@@ -99,19 +118,19 @@ def convert_pdf(input_file_path):
 
 def stack(output_dir_path, chat=False):
     def __screenshot(index):
-        pyautogui.moveTo(*NEXT_POINT)
+        pyautogui.moveTo(*NXT_POINT)
         pyautogui.screenshot(os.path.join(output_dir_path, f"{index:04d}.png"), region=SHOT_REGION)
-        sleep(SHORT_INTERVAL)
+        sleep(SHRT_INTERVAL)
         pyautogui.click()
-        sleep(INTERVAL)
+        sleep(NORM_INTERVAL)
 
     sleep(LONG_INTERVAL)
     pyautogui.hotkey("win", "d")
-    sleep(INTERVAL)
+    sleep(NORM_INTERVAL)
     pyautogui.moveTo(*APP_POINT)
-    sleep(INTERVAL)
+    sleep(NORM_INTERVAL)
     pyautogui.click()
-    sleep(INTERVAL)
+    sleep(NORM_INTERVAL)
 
     global MAX_INDEX
     if MAX_INDEX > 0:
@@ -123,13 +142,13 @@ def stack(output_dir_path, chat=False):
         while True:
             __screenshot(index)
             index += 1
-            (red, green, blue) = pyautogui.pixel(*CHECK_POINT)
+            (red, green, blue) = pyautogui.pixel(*CHCK_POINT)
             if (red, green, blue) == HALT_COLOR:
                 MAX_INDEX = index
                 print(f"\033[1;31mMAX_INDEX is changed to {index}. \033[0m")
                 break
 
-    sleep(INTERVAL)
+    sleep(NORM_INTERVAL)
     if sys.platform == "win32":
         if chat:
             notify()
@@ -138,13 +157,13 @@ def stack(output_dir_path, chat=False):
         pyautogui.hotkey("win", "l")
 
 def notify():
-    pyautogui.moveTo(*CHAT_POINT, duration=LONG_INTERVAL)
+    pyautogui.moveTo(*CHT_POINT, duration=LONG_INTERVAL)
     pyautogui.click()
     pyautogui.moveTo(*TAG_POINT, duration=LONG_INTERVAL)
     pyautogui.click()
-    pyautogui.moveTo(*INBOX_POINT, duration=LONG_INTERVAL)
+    pyautogui.moveTo(*BOX_POINT, duration=LONG_INTERVAL)
     pyautogui.click()
-    pyautogui.typewrite(str(MAX_INDEX), SHORT_INTERVAL)
+    pyautogui.typewrite(str(MAX_INDEX), SHRT_INTERVAL)
     pyautogui.moveTo(*SEND_POINT, duration=LONG_INTERVAL)
     pyautogui.click()
     sleep(LONG_INTERVAL)
@@ -156,7 +175,7 @@ def preprocess(input_dir_path, output_dir_path):
         image = Image.open(os.path.join(input_dir_path, f"{index:04d}.png"))
         if CROP_REGION:
             image = image.crop(CROP_REGION)
-        image = image.rotate(ROTATE_ANGLE, expand=True)
+        image = image.rotate(ROTAT_ANGLE, expand=True)
         image.save(os.path.join(output_dir_path, f"{index:04d}.png"))
 
 def renormalize(dir_path):
@@ -230,7 +249,7 @@ def post(input_dir_path, output_dir_path):
         result = __post_baidu(os.path.join(input_dir_path, f"{index:04d}.png"))
         writable = open(os.path.join(output_dir_path, f"{index:04d}.json"), "w", encoding="utf-8")
         json.dump(result, writable, ensure_ascii=False, indent=2)
-        sleep(SHORT_INTERVAL)
+        sleep(SHRT_INTERVAL)
 
 def postprocess(input_dir_path, output_dir_path):
     assert MAX_INDEX > 0
@@ -245,7 +264,7 @@ def postprocess(input_dir_path, output_dir_path):
 
         line_count = 0
         for j in range(image.size[0]):
-            if pixels[j, CHAPTER_LINE] == LINE_COLOR:
+            if pixels[j, CHAPTER_LNE] == LINE_COLOR:
                 line_count += 1
 
         response = json.load(open(output_file_path, "r", encoding="utf-8"))
@@ -292,7 +311,7 @@ def merge(input_dir_path, output_dir_path):
                     break
             elif skip_flag:
                 break
-            elif line["location"]["left"] > LEFT_THRESHOLD:
+            elif line["location"]["left"] > L_THRESHOLD:
                 writable.write("\n\n")
             writable.write(text)
             first_line_flag = False
@@ -362,7 +381,7 @@ def merge(input_dir_path, output_dir_path):
 """
 
 if __name__ == "__main__":
-    convert_pdf(sub("ocr-raw.pdf"))
+    convert(sub("ocr-raw.pdf"))
     stack(sub("ocr-raw"))
     renormalize(sub("ocr-raw"))
     preprocess(sub("ocr-raw"), sub("ocr-input"))

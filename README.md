@@ -93,10 +93,32 @@ python single/pdf.py -s ...
     使用腾讯云 SDK 需要额外安装 `pip install tencentcloud-sdk-python`
 
 2. 命令行参数
-    - `-s` / `--src`：输入目录路径，将所有待处理 PDF 文件置于其中
-    - `-d` / `--dst`：输出目录路径
+    - `-b` / `--base`：
+    - `-s` / `--min`：第一张图的序号
+    - `-d` / `--max`：最后一张图的序号加一，除了拍摄时都不能为零
+    - `-v` / `--vol`：首卷编号，如果是番外或设定集则指定为 `0`
+    - `--app-point`：阅读器在任务栏的坐标
+    - `--nxt-point`：用于点击下一页的坐标
+    - `--cht-point`：消息平台在任务栏的坐标
+    - `--tag-point`：需要发送消息的对象在消息列表的坐标
+    - `--box-point`：输入框的坐标
+    - `--hnt-point`：发送按钮的坐标
+    - `--chck-point`：检查这个位置的像素，以决定是否停止拍摄
+    - `--halt-color`：被检查像素的目标颜色 RGB
+    - `--send-color`：新章节线的颜色
+    - `--chapter-lne`：新章节线在处理后图片所在的行数
+    - `--line-length`：新章节线颜色的像素个数
+    - `--rotat-angle`：横屏拍摄后需要旋转的角度
+    - `--l-threshold`：判定为新一段的缩进临界值
+    - `--shot-region`：拍摄的范围，前两个是坐标，后两个是长和宽
+    - `--crop-region`：裁剪的范围，前后两个都是坐标
 
 3. 可调节常量
+    - `CHAPTERS`：章节序号标注方式
+    - `VOLUME_REG`：可作为卷首章节的标号，若无法按预期分卷，可临时添加标志
+    - `NORM_INTERVAL`：通用单次操作标准等待时间
+    - `SHRT_INTERVAL`：单次操作较短等待时间
+    - `LONG_INTERVAL`：单次操作较长等待时间
 
 ### 用法
 
