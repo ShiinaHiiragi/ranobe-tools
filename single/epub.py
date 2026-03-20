@@ -42,7 +42,7 @@ CONFIG = {
         # whether to clear dst (and tmp/dbg)
         # at the very beginning
         # type: bool
-        "path.clear": True,
+        "path.clear": False,
         # manually specify local setting
         # should be a list of pathlike str
         # target file should be an json Array
