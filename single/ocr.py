@@ -22,7 +22,9 @@ parser.add_argument("-b", "--base", type=str, default="~/Downloads")
 parser.add_argument("-v", "--vol", type=int)
 parser.add_argument("-s", "--min", type=int)
 parser.add_argument("-d", "--max", type=int)
+
 parser.add_argument("-p", "--pdf", action="store_true")
+parser.add_argument("-o", "--ocr", choices=["baidu", "tencent"], default="baidu")
 
 parser.add_argument("--app-point", nargs="+", type=int)
 parser.add_argument("--nxt-point", nargs="+", type=int)
@@ -36,8 +38,8 @@ parser.add_argument("--chck-point", nargs="+", type=int)
 parser.add_argument("--halt-color", nargs="+", type=int)
 parser.add_argument("--send-color", nargs="+", type=int)
 
-parser.add_argument("--chapter-lne", type=int)
 parser.add_argument("--line-length", type=int)
+parser.add_argument("--chapter-lne", type=int)
 parser.add_argument("--rotat-angle", type=int)
 parser.add_argument("--l-threshold", type=int)
 
@@ -51,6 +53,9 @@ min_index = args.min
 max_index = args.max
 min_volume = args.vol
 
+args_pdf = args.pdf
+args_ocr = args.ocr
+
 app_point = tuple(args.app_point)[:2]
 nxt_point = tuple(args.nxt_point)[:2]
 
@@ -63,8 +68,8 @@ chck_point = tuple(args.chck_point)[:2]
 halt_color = tuple(args.halt_color)[:3]
 line_color = tuple(args.send_color)[:3]
 
-chapter_lne = args.chapter_lne
 line_length = args.line_length
+chapter_lne = args.chapter_lne
 rotat_angle = args.rotat_angle
 l_threshold = args.l_threshold
 
@@ -261,7 +266,10 @@ def recognize(input_dir_path, output_dir_path):
     assert max_index > 0
     for index in (pbar := tqdm(range(min_index, max_index))):
         pbar.set_description("Request")
-        result = __post_baidu(os.path.join(input_dir_path, f"{index:04d}.png"))
+        result = {
+            "baidu": __post_baidu,
+            "tencent": __post_tencent
+        }[args_ocr](os.path.join(input_dir_path, f"{index:04d}.png"))
         writable = open(os.path.join(
             output_dir_path,
             f"{index:04d}.json"
@@ -360,7 +368,7 @@ def merge(input_dir_path, output_dir_path):
             print(f"\033[1;31m  {chapter_name}\033[0m")
 
 if __name__ == "__main__":
-    convert("raw.pdf") if args.pdf else reader("raw")
+    convert("raw.pdf") if args_pdf else reader("raw")
     renormalize("raw")
     preprocess("raw", "src")
     recognize("src", "dst")

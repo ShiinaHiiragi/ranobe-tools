@@ -98,6 +98,7 @@ python single/pdf.py
     - `-d` / `--max`：最后一张图的序号加一，除了拍摄时都不能为零
     - `-v` / `--vol`：首卷编号，如果是番外或设定集则指定为 `0`
     - `-p` / `--pdf`：从 PDF 获取图片，默认从阅读器采集
+    - `-o` / `--ocr`：可选 OCR 后端，包括 `baidu` 或 `tencent`
     - `--app-point`：阅读器在任务栏的坐标
     - `--nxt-point`：用于点击下一页的坐标
     - `--cht-point`：消息平台在任务栏的坐标
@@ -107,8 +108,8 @@ python single/pdf.py
     - `--chck-point`：检查这个位置的像素，以决定是否停止拍摄
     - `--halt-color`：被检查像素的目标颜色 RGB
     - `--send-color`：新章节线的颜色
-    - `--chapter-lne`：新章节线在处理后图片所在的行数
     - `--line-length`：新章节线颜色的像素个数
+    - `--chapter-lne`：新章节线在处理后图片所在的行数
     - `--rotat-angle`：横屏拍摄后需要旋转的角度
     - `--l-threshold`：判定为新一段的缩进临界值
     - `--shot-region`：拍摄的范围，前两个是坐标，后两个是长和宽
@@ -139,8 +140,8 @@ python single/ocr.py \
   --chck-point 2350 1200 \
   --halt-color 255 99 72 \
   --send-color 122 122 122 \
-  --chapter-lne 76 \
   --line-length 1235 \
+  --chapter-lne 76 \
   --rotat-angle 90 \
   --l-threshold 40 \
   --shot-region 85 50 2340 1315 \
