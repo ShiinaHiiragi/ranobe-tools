@@ -38,4 +38,9 @@ python single/sakura.py
 
 ## Bangumi Publisher
 
-[WIP]
+```shell
+pip install requests python-dotenv beautifulsoup4 rapidfuzz
+python journal/init.py
+python journal/post.py
+python journal/meta.py
+```
