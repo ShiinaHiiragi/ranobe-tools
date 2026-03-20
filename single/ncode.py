@@ -17,23 +17,22 @@ parser.add_argument("-v", "--vol", type=int, default=1)
 args = parser.parse_args()
 args_dst = os.path.expanduser(args.dst)
 os.makedirs(args_dst, exist_ok=True)
+url = lambda ncode, p_idx: f"https://ncode.syosetu.com/{ncode}/?p={p_idx}/"
 
-index = 1
-pages = 1
-title = ""
-chap_list = []
-vol_index = args.vol
+def request_list(driver):
+    vol_index = args.vol
+    pg_index = 1
+    pg_total = 1
 
-driver = webdriver.Chrome()
-list_url = lambda ncode, p_idx: f"https://ncode.syosetu.com/{ncode}/?p={p_idx}/"
+    title = ""
+    chap_list = []
 
-if __name__ == "__main__":
     while True:
         dl_index = 0
-        driver.get(list_url(args.ncode, index))
+        driver.get(url(args.ncode, pg_index))
         time.sleep(4)
 
-        if index == 1:
+        if pg_index == 1:
             title = driver.find_elements(
                 By.XPATH,
                 '//*[@class="p-novel__title"]'
@@ -43,7 +42,7 @@ if __name__ == "__main__":
                 By.XPATH,
                 '//*[@class="c-pager__item c-pager__item--last"]'
             )) > 0:
-                pages = int(last_link[0].get_attribute("href").split("?p=")[1])
+                pg_total = int(last_link[0].get_attribute("href").split("?p=")[1])
 
         tabs_element = driver.find_elements(
             By.XPATH,
@@ -75,10 +74,13 @@ if __name__ == "__main__":
                 })
                 dl_index += 1
 
-        index += 1
-        if index > pages:
+        pg_index += 1
+        if pg_index > pg_total:
             break
 
+    return title, chap_list
+
+def request_text(driver, title, chap_list):
     pbar = tqdm(total=reduce(
         lambda now, next: now + len(next["chapters"]),
         chap_list,
@@ -102,10 +104,16 @@ if __name__ == "__main__":
                     By.XPATH,
                     '//div[@class="js-novel-text p-novel__text"]'
                 )[0].get_attribute("innerHTML")
-                text = re.sub("<p id=\"L\d+\">(.+)</p>", "\\1", text_elements)
+
+                text = re.sub("<p id=\"L\\d+\">(.+)</p>", "\\1", text_elements)
                 text = re.sub("<br>", "\n", text)
 
                 writable.write(f"### {chapter['title']}\n\n")
                 writable.write(text.strip() + "\n\n")
                 writable.flush()
                 pbar.update(1)
+
+if __name__ == "__main__":
+    driver = webdriver.Chrome()
+    title, chap_list = request_list(driver)
+    request_text(driver, title, chap_list)
