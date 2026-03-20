@@ -28,8 +28,8 @@ if os.path.exists(args_ref):
     with open(args_ref, mode="r", encoding="utf-8") as readable:
         proper_list = json.load(readable)
 
-BASE_URL = "http://127.0.0.1:11434/api/generate"
 MODEL_NAME = "sakura:latest"
+BASE_URL = "http://127.0.0.1:11434/api/generate"
 
 MAX_RETRY = 5
 SEGMENT_UNIT = 128
