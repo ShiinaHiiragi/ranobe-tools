@@ -92,7 +92,11 @@ python single/pdf.py
 
     使用腾讯云 SDK 需要额外安装 `pip install tencentcloud-sdk-python`
 
-2. 命令行参数
+2. 环境参数：在项目根目录新建 `.env` 文件，填入如下环境变量（二者任选其一）
+    - `ACCESS_TOKEN`：百度智能云的 API 临时授权凭证
+    - `SECRET_ID` 与 `SECRET_KEY`：腾讯云的 API 密钥
+
+3. 命令行参数
     - `-b` / `--base`：基础工作目录
     - `-s` / `--min`：第一张图的序号
     - `-d` / `--max`：最后一张图的序号加一，除了拍摄时都不能为零
@@ -115,7 +119,7 @@ python single/pdf.py
     - `--shot-region`：拍摄的范围，前两个是坐标，后两个是长和宽
     - `--crop-region`：裁剪的范围，前后两个都是坐标
 
-3. 可调节常量
+4. 可调节常量
     - `CHAPTERS`：章节序号标注方式
     - `REPLACE_REG`：替换章节序号的正则表达式
     - `VOLUME_REG`：匹配卷首章节的正则表达式；若无法按预期分卷，可临时添加标志
