@@ -7,6 +7,7 @@ import ctypes
 import argparse
 
 import fitz
+import dotenv
 import requests
 import pyautogui
 
@@ -14,6 +15,15 @@ from time import sleep
 from tqdm import tqdm
 from PIL import Image
 from pycnnum import num2cn
+
+dotenv.load_dotenv(os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    ".env"
+))
+
+access_token = os.environ.get("ACCESS_TOKEN", "")
+secret_id = os.environ.get("SECRET_ID", "")
+secret_key = os.environ.get("SECRET_KEY", "")
 
 pyautogui.FAILSAFE = True
 parser = argparse.ArgumentParser()
@@ -218,9 +228,8 @@ def recognize(input_dir_path, output_dir_path):
     output_dir_path = sub(output_dir_path)
 
     def __post_baidu(file_path):
-        # https://ai.baidu.com/ai-doc/REFERENCE/Ck3dwjhhu
+        # ref: https://ai.baidu.com/ai-doc/REFERENCE/Ck3dwjhhu
         request_url_base = "https://aip.baidubce.com/rest/2.0/ocr/v1/general"
-        access_token = "TOKEN"
         image = base64.b64encode(open(file_path, "rb").read())
 
         request_url = f"{request_url_base}?access_token={access_token}"
@@ -242,7 +251,7 @@ def recognize(input_dir_path, output_dir_path):
         from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
         from tencentcloud.ocr.v20181119 import ocr_client, models
         try:
-            cred = credential.Credential("TOKEN", "TOKEN")
+            cred = credential.Credential(secret_id, secret_key)
             httpProfile = HttpProfile()
             httpProfile.endpoint = "ocr.tencentcloudapi.com"
             clientProfile = ClientProfile()

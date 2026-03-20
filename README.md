@@ -87,7 +87,7 @@ python single/pdf.py
 1. 安装所需包
 
     ```shell
-    pip install tqdm pyautogui pillow requests pymupdf pycnnum
+    pip install tqdm pyautogui pillow python-dotenv requests pymupdf pycnnum
     ```
 
     使用腾讯云 SDK 需要额外安装 `pip install tencentcloud-sdk-python`
@@ -156,7 +156,7 @@ python single/ocr.py \
 
 ### 配置
 
-1. 下载 Ollama 并配置 `Sakura-14B-Qwen2.5-v1.0-GGUF`
+1. 安装 [Ollama](https://ollama.com/download) 并配置 [`Sakura-14B-Qwen2.5-v1.0-GGUF`](https://huggingface.co/SakuraLLM/Sakura-14B-Qwen2.5-v1.0-GGUF)
     - 新建 `Modelfile` 文件并指定模型文件路径
 
         ```plaintext
