@@ -18,10 +18,10 @@ from pycnnum import num2cn
 pyautogui.FAILSAFE = True
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-b", "--base", type=str)
+parser.add_argument("-b", "--base", type=str, default="~/Downloads")
+parser.add_argument("-v", "--vol", type=int)
 parser.add_argument("-s", "--min", type=int)
 parser.add_argument("-d", "--max", type=int)
-parser.add_argument("-v", "--vol", type=int)
 
 parser.add_argument("--app-point", nargs="+", type=int)
 parser.add_argument("--nxt-point", nargs="+", type=int)
@@ -44,31 +44,31 @@ parser.add_argument("--shot-region", nargs="+", type=int)
 parser.add_argument("--crop-region", nargs="+", type=int)
 
 args = parser.parse_args()
-BASE_PATH = os.path.expanduser(args.base)
+base_path = os.path.expanduser(args.base)
 
-MIN_INDEX = args.min
-MAX_INDEX = args.max
-MIN_VOLUME = args.vol
+min_index = args.min
+max_index = args.max
+min_volume = args.vol
 
-APP_POINT = tuple(args.app_point)[:2]
-NXT_POINT = tuple(args.nxt_point)[:2]
+app_point = tuple(args.app_point)[:2]
+nxt_point = tuple(args.nxt_point)[:2]
 
-CHT_POINT = tuple(args.cht_point)[:2]
-TAG_POINT = tuple(args.tag_point)[:2]
-BOX_POINT = tuple(args.box_point)[:2]
-SEND_POINT = tuple(args.hnt_point)[:2]
+cht_point = tuple(args.cht_point)[:2]
+tag_point = tuple(args.tag_point)[:2]
+box_point = tuple(args.box_point)[:2]
+send_point = tuple(args.hnt_point)[:2]
 
-CHCK_POINT = tuple(args.chck_point)[:2]
-HALT_COLOR = tuple(args.halt_color)[:3]
-LINE_COLOR = tuple(args.send_color)[:3]
+chck_point = tuple(args.chck_point)[:2]
+halt_color = tuple(args.halt_color)[:3]
+line_color = tuple(args.send_color)[:3]
 
-CHAPTER_LNE = args.chapter_lne
-LINE_LENGTH = args.line_length
-ROTAT_ANGLE = args.rotat_angle
-L_THRESHOLD = args.l_threshold
+chapter_lne = args.chapter_lne
+line_length = args.line_length
+rotat_angle = args.rotat_angle
+l_threshold = args.l_threshold
 
-SHOT_REGION = tuple(args.shot_region)[:4]
-CROP_REGION = tuple(args.crop_region)[:4]
+shot_region = tuple(args.shot_region)[:4]
+crop_region = tuple(args.crop_region)[:4]
 
 AR_NUM = "[0123456789]"
 CN_NUM = "[〇零一两二三四五六七八九十百千万]"
@@ -84,7 +84,6 @@ CHAPTERS = [
 
 CHAPTER_REG = f"^({'|'.join(CHAPTERS)})"
 REPLACE_REG = "### \\1　"
-
 VOLUME_REG = (
     "^(第0话)"
     "|^(第一章)"
@@ -98,7 +97,7 @@ SHRT_INTERVAL = NORM_INTERVAL / 2
 LONG_INTERVAL = NORM_INTERVAL * 2
 
 def sub(name):
-    result = os.path.join(BASE_PATH, name)
+    result = os.path.join(base_path, name)
     os.makedirs(result, exist_ok=True)
     return result
 
@@ -118,8 +117,8 @@ def convert(input_file_path):
 
 def stack(output_dir_path, chat=False):
     def __screenshot(index):
-        pyautogui.moveTo(*NXT_POINT)
-        pyautogui.screenshot(os.path.join(output_dir_path, f"{index:04d}.png"), region=SHOT_REGION)
+        pyautogui.moveTo(*nxt_point)
+        pyautogui.screenshot(os.path.join(output_dir_path, f"{index:04d}.png"), region=shot_region)
         sleep(SHRT_INTERVAL)
         pyautogui.click()
         sleep(NORM_INTERVAL)
@@ -127,24 +126,24 @@ def stack(output_dir_path, chat=False):
     sleep(LONG_INTERVAL)
     pyautogui.hotkey("win", "d")
     sleep(NORM_INTERVAL)
-    pyautogui.moveTo(*APP_POINT)
+    pyautogui.moveTo(*app_point)
     sleep(NORM_INTERVAL)
     pyautogui.click()
     sleep(NORM_INTERVAL)
 
-    global MAX_INDEX
-    if MAX_INDEX > 0:
-        for index in (pbar := tqdm(range(MIN_INDEX, MAX_INDEX))):
+    global max_index
+    if max_index > 0:
+        for index in (pbar := tqdm(range(min_index, max_index))):
             pbar.set_description("Screenshot")
             __screenshot(index)
     else:
-        index = MIN_INDEX
+        index = min_index
         while True:
             __screenshot(index)
             index += 1
-            (red, green, blue) = pyautogui.pixel(*CHCK_POINT)
-            if (red, green, blue) == HALT_COLOR:
-                MAX_INDEX = index
+            (red, green, blue) = pyautogui.pixel(*chck_point)
+            if (red, green, blue) == halt_color:
+                max_index = index
                 print(f"\033[1;31mMAX_INDEX is changed to {index}. \033[0m")
                 break
 
@@ -157,33 +156,33 @@ def stack(output_dir_path, chat=False):
         pyautogui.hotkey("win", "l")
 
 def notify():
-    pyautogui.moveTo(*CHT_POINT, duration=LONG_INTERVAL)
+    pyautogui.moveTo(*cht_point, duration=LONG_INTERVAL)
     pyautogui.click()
-    pyautogui.moveTo(*TAG_POINT, duration=LONG_INTERVAL)
+    pyautogui.moveTo(*tag_point, duration=LONG_INTERVAL)
     pyautogui.click()
-    pyautogui.moveTo(*BOX_POINT, duration=LONG_INTERVAL)
+    pyautogui.moveTo(*box_point, duration=LONG_INTERVAL)
     pyautogui.click()
-    pyautogui.typewrite(str(MAX_INDEX), SHRT_INTERVAL)
-    pyautogui.moveTo(*SEND_POINT, duration=LONG_INTERVAL)
+    pyautogui.typewrite(str(max_index), SHRT_INTERVAL)
+    pyautogui.moveTo(*send_point, duration=LONG_INTERVAL)
     pyautogui.click()
     sleep(LONG_INTERVAL)
 
 def preprocess(input_dir_path, output_dir_path):
-    assert MAX_INDEX > 0
-    for index in (pbar := tqdm(range(MIN_INDEX, MAX_INDEX))):
+    assert max_index > 0
+    for index in (pbar := tqdm(range(min_index, max_index))):
         pbar.set_description("Preprocess")
         image = Image.open(os.path.join(input_dir_path, f"{index:04d}.png"))
-        if CROP_REGION:
-            image = image.crop(CROP_REGION)
-        image = image.rotate(ROTAT_ANGLE, expand=True)
+        if crop_region:
+            image = image.crop(crop_region)
+        image = image.rotate(rotat_angle, expand=True)
         image.save(os.path.join(output_dir_path, f"{index:04d}.png"))
 
 def renormalize(dir_path):
-    global MAX_INDEX
-    assert MAX_INDEX > 0
-    real_index = MIN_INDEX
+    global max_index
+    assert max_index > 0
+    real_index = min_index
 
-    for index in (pbar := tqdm(range(MIN_INDEX, MAX_INDEX))):
+    for index in (pbar := tqdm(range(min_index, max_index))):
         pbar.set_description("Renormalization")
         if os.path.exists(os.path.join(dir_path, f"{index:04d}.png")):
             if real_index < index:
@@ -192,8 +191,8 @@ def renormalize(dir_path):
                     os.path.join(dir_path, f"{real_index:04d}.png")
                 )
             real_index += 1
-    if real_index < MAX_INDEX:
-        MAX_INDEX = real_index
+    if real_index < max_index:
+        max_index = real_index
         print(f"\033[1;31mMAX_INDEX is changed to {real_index}. \033[0m")
 
 def post(input_dir_path, output_dir_path):
@@ -243,8 +242,8 @@ def post(input_dir_path, output_dir_path):
         except TencentCloudSDKException:
             return __post_tencent(file_path)
 
-    assert MAX_INDEX > 0
-    for index in (pbar := tqdm(range(MIN_INDEX, MAX_INDEX))):
+    assert max_index > 0
+    for index in (pbar := tqdm(range(min_index, max_index))):
         pbar.set_description("Request")
         result = __post_baidu(os.path.join(input_dir_path, f"{index:04d}.png"))
         writable = open(os.path.join(output_dir_path, f"{index:04d}.json"), "w", encoding="utf-8")
@@ -252,10 +251,10 @@ def post(input_dir_path, output_dir_path):
         sleep(SHRT_INTERVAL)
 
 def postprocess(input_dir_path, output_dir_path):
-    assert MAX_INDEX > 0
+    assert max_index > 0
     error_list = list()
 
-    for index in (pbar := tqdm(range(MIN_INDEX, MAX_INDEX))):
+    for index in (pbar := tqdm(range(min_index, max_index))):
         pbar.set_description("Postprocess")
         input_file_path = os.path.join(input_dir_path, f"{index:04d}.png")
         output_file_path = os.path.join(output_dir_path, f"{index:04d}.json")
@@ -264,13 +263,13 @@ def postprocess(input_dir_path, output_dir_path):
 
         line_count = 0
         for j in range(image.size[0]):
-            if pixels[j, CHAPTER_LNE] == LINE_COLOR:
+            if pixels[j, chapter_lne] == line_color:
                 line_count += 1
 
         response = json.load(open(output_file_path, "r", encoding="utf-8"))
         if "error_code" in response:
             error_list.append(f"{index:04d}.json")
-        response["new"] = True if line_count == LINE_LENGTH else False
+        response["new"] = True if line_count == line_length else False
         json.dump(response, open(output_file_path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
     if len(error_list) > 0:
@@ -279,14 +278,14 @@ def postprocess(input_dir_path, output_dir_path):
             print(f"\033[1;31m  {file_name}\033[0m")
 
 def merge(input_dir_path, output_dir_path):
-    assert MAX_INDEX > 0
-    volume = MIN_VOLUME
+    assert max_index > 0
+    volume = min_volume
     writable = None
     first_line_flag = True
     skip_flag = False
     skip_list = list()
 
-    for index in (pbar := tqdm(range(MIN_INDEX, MAX_INDEX))):
+    for index in (pbar := tqdm(range(min_index, max_index))):
         pbar.set_description("Merge")
         readable = open(os.path.join(input_dir_path, f"{index:04d}.json"), "r", encoding="utf-8")
         response = json.load(readable)
@@ -311,7 +310,7 @@ def merge(input_dir_path, output_dir_path):
                     break
             elif skip_flag:
                 break
-            elif line["location"]["left"] > L_THRESHOLD:
+            elif line["location"]["left"] > l_threshold:
                 writable.write("\n\n")
             writable.write(text)
             first_line_flag = False

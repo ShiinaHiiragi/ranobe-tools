@@ -21,7 +21,7 @@
     - 配置说明详见脚本内注释
     - 也可在全局配置中通过 `path.src` 或 `local.path` 条目创建本地配置文件
 
-### 用法
+### 用法示例
 
 ```shell
 python single/epub.py
@@ -44,10 +44,10 @@ python single/epub.py
     - `-d` / `--dst`：输出目录路径
     - `-v` / `--vol`：首卷编号，如果是番外或设定集则指定为 `0`
 
-### 用法
+### 用法示例
 
 ```shell
-python single/ncode.py -n ...
+python single/ncode.py -n n7437dj
 ```
 
 ## PDF 转换
@@ -69,10 +69,10 @@ python single/ncode.py -n ...
     - `-s` / `--src`：输入目录路径，将所有待处理 PDF 文件置于其中
     - `-d` / `--dst`：输出目录路径
 
-### 用法
+### 用法示例
 
 ```shell
-python single/pdf.py -s ...
+python single/pdf.py
 ```
 
 ## OCR 识别
@@ -115,15 +115,35 @@ python single/pdf.py -s ...
 
 3. 可调节常量
     - `CHAPTERS`：章节序号标注方式
-    - `VOLUME_REG`：可作为卷首章节的标号，若无法按预期分卷，可临时添加标志
+    - `REPLACE_REG`：替换章节序号的正则表达式
+    - `VOLUME_REG`：匹配卷首章节的正则表达式；若无法按预期分卷，可临时添加标志
     - `NORM_INTERVAL`：通用单次操作标准等待时间
     - `SHRT_INTERVAL`：单次操作较短等待时间
     - `LONG_INTERVAL`：单次操作较长等待时间
 
-### 用法
+### 用法示例
 
 ```shell
-python single/ocr.py
+python single/ocr.py \
+  --base ~/Downloads \
+  --vol 0 \
+  --min 0 \
+  --max 255 \
+  --app-point 110 1400 \
+  --nxt-point 180 1280 \
+  --cht-point 180 1400 \
+  --tag-point 300 150 \
+  --box-point 800 1200 \
+  --hnt-point 2440 1320 \
+  --chck-point 2350 1200 \
+  --halt-color 255 99 72 \
+  --send-color 122 122 122 \
+  --chapter-lne 76 \
+  --line-length 1235 \
+  --rotat-angle 90 \
+  --l-threshold 40 \
+  --shot-region 85 50 2340 1315 \
+  --crop-region 50 30 2240 1276
 ```
 
 ## Sakura 翻译
@@ -178,7 +198,7 @@ python single/ocr.py
     - `SEGMENT_SIZE`：语段最大长度
     - `PREV_CONTEXT_SIZE`：上下文最大长度
 
-### 用法
+### 用法示例
 
 ```shell
 python single/sakura.py
