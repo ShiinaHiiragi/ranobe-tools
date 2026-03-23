@@ -49,18 +49,16 @@ def render_inline(text: str):
 def log(msg, level=0):
     print("  " * level + msg)
 
-def pair(writable, zh_text, jp_text, pure, origins):
-    jp_text = origins[pure.index(jp_text)]
-
+def pair(writable, zh_text, jp_text, origin):
     if args_raw:
         writable.write(zh_text + "\n")
-        writable.write(jp_text + "\n\n")
+        writable.write(origin(jp_text) + "\n\n")
 
     else:
         writable.write(f"<p>{render_inline(zh_text)}</p>\n")
         writable.write(
             f"<p style=\"opacity: 0.72; font-size: 0.84em; top: -6px; \">\n"
-            f"{render_inline(jp_text)}\n"
+            f"{render_inline(origin(jp_text))}\n"
             f"</p>\n"
         )
 
@@ -184,8 +182,7 @@ def translate_line(
     progress,
     processed,
     prev_lines,
-    pure,
-    origins,
+    origin,
     depth
 ):
     results = []
@@ -218,7 +215,7 @@ def translate_line(
         zh_text = zh_text.split("\n")[0]
         results.append(zh_text)
 
-        pair(writable, zh_text, jp_text, pure, origins)
+        pair(writable, zh_text, jp_text, origin)
         writable.flush()
 
         prev_lines.append(zh_text)
@@ -233,8 +230,7 @@ def translate_block(
     progress,
     processed,
     prev_lines,
-    pure,
-    origins,
+    origin,
     depth
 ):
     japanese = "\n".join(seg)
@@ -248,7 +244,7 @@ def translate_block(
             if len(lines) == len(seg):
                 log(f"[BLK] matched {len(lines)}=={len(seg)}", depth)
                 for jp_text, zh_text in zip(seg, lines):
-                    pair(writable, zh_text, jp_text, pure, origins)
+                    pair(writable, zh_text, jp_text, origin)
                     prev_lines.append(zh_text)
                     processed[0] += 1
                     save_progress(progress, processed[0], prev_lines)
@@ -273,8 +269,7 @@ def translate_segment(
     progress,
     processed,
     prev_lines,
-    pure,
-    origins,
+    origin,
     depth=1,
     direction=0
 ):
@@ -292,8 +287,7 @@ def translate_segment(
         progress,
         processed,
         prev_lines,
-        pure,
-        origins,
+        origin,
         depth
     )
 
@@ -308,8 +302,7 @@ def translate_segment(
             progress,
             processed,
             prev_lines,
-            pure,
-            origins,
+            origin,
             depth=depth+1
         )
 
@@ -324,8 +317,7 @@ def translate_segment(
         progress,
         processed,
         prev_lines,
-        pure,
-        origins,
+        origin,
         depth=depth+1,
         direction=-1
     )
@@ -335,20 +327,17 @@ def translate_segment(
         progress,
         processed,
         prev_lines,
-        pure,
-        origins,
+        origin,
         depth=depth+1,
         direction=1
     )
 
-def translate(lines, origins, writable, progress):
+def translate(lines, origin, writable, progress):
     progress_obj = load_progress(progress)
     line_index = progress_obj.get("line_index", 0)
     prev_lines = progress_obj.get("prev_lines", [])
 
     pure = lines[line_index:]
-    origins = origins[line_index]
-
     segments = segment_text(pure, SEGMENT_SIZE)
     total = len(segments)
     processed = [line_index]
@@ -361,8 +350,7 @@ def translate(lines, origins, writable, progress):
             progress,
             processed,
             prev_lines,
-            pure,
-            origins
+            origin
         )
 
 def main(src, dst, progress, name):
@@ -373,10 +361,12 @@ def main(src, dst, progress, name):
             for line in raw_text.splitlines()
             if line.strip() != ""
         ]
+
         pure_list = [
             re.sub(ruby_reg, "", line).strip()
             for line in raw_list
         ]
+        origin = lambda line: raw_list[pure_list.index(line)]
 
     with open(dst, mode="a", encoding="utf-8") as writable:
         if os.path.exists(progress):
@@ -392,7 +382,7 @@ def main(src, dst, progress, name):
             writable.flush()
             save_progress(progress, 0, [])
 
-        translate(raw_list, pure_list, writable, progress)
+        translate(raw_list, origin, writable, progress)
         if not args_raw:
             writable.write(HTML_SUFFIX)
 
