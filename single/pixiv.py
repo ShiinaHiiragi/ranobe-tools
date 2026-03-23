@@ -24,10 +24,11 @@ def cruise_text(driver):
     soup = BeautifulSoup(html, "html.parser")
 
     paras = soup.select_one('main main').select(PARAS_SELECTOR)
-    texts = "\n\n".join([
-        para.get_text(separator="\n").strip()
-        for para in paras
-    ])
+    texts = "\n\n".join([(
+        para.get_text("\n").strip()
+        if para.name == "p"
+        else ("#" * int(para.name[1]) + " "+ para.get_text("\n").strip())
+    ) for para in paras])
 
     return soup, texts
 
@@ -52,7 +53,7 @@ def cruise_page(driver, index):
 
         texts = []
         title = sub_soup.select_one('h1').text
-        intro = sub_soup.select_one(INTRO_SELECTOR).get_text(separator="\n")
+        intro = sub_soup.select_one(INTRO_SELECTOR).get_text("\n")
         texts.append(text)
 
         while len(sub_soup.select(NEXT_SELECTOR)) > 0:

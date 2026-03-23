@@ -50,6 +50,29 @@ python single/epub.py
 python single/ncode.py -n n7437dj
 ```
 
+## Pixiv 下载
+
+从 [Pixiv](https://www.pixiv.net/) 上缓慢抓取小说，按篇写入本地文件
+
+### 配置
+
+1. 安装所需包
+
+    ```shell
+    pip install selenium beautifulsoup4
+    ```
+
+2. 命令行参数
+    - `-n` / `--uid`：作者 UID
+    - `-d` / `--dst`：输出目录路径
+    - `-l` / `--login`：是否登录，用于加载被隐藏的文章
+
+### 用法示例
+
+```shell
+python single/pixiv.py -u 2948941
+```
+
 ## PDF 转换
 
 将文字 PDF 小说转换为 txt 纯文本
