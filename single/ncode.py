@@ -19,6 +19,12 @@ args_dst = os.path.expanduser(args.dst)
 os.makedirs(args_dst, exist_ok=True)
 url = lambda ncode, p_idx: f"https://ncode.syosetu.com/{ncode}/?p={p_idx}/"
 
+TITLE_PATH = '//*[@class="p-novel__title"]'
+PAGER_PATH = '//*[@class="c-pager__item c-pager__item--last"]'
+PLIST_PATH = '//*[@class="p-eplist"]/div'
+LINKS_PATH = '//*[@class="p-eplist"]/div[@class="p-eplist__sublist"]/a'
+TEXTS_PATH = '//div[@class="js-novel-text p-novel__text"]'
+
 def request_list(driver):
     vol_index = args.vol
     pg_index = 1
@@ -33,21 +39,10 @@ def request_list(driver):
         time.sleep(4)
 
         if pg_index == 1:
-            title = driver.find_elements(
-                By.XPATH,
-                '//*[@class="p-novel__title"]'
-            )[0].text
-
-            if len(last_link := driver.find_elements(
-                By.XPATH,
-                '//*[@class="c-pager__item c-pager__item--last"]'
-            )) > 0:
+            title = driver.find_elements(By.XPATH, TITLE_PATH)[0].text
+            if len(last_link := driver.find_elements(By.XPATH, PAGER_PATH)) > 0:
                 pg_total = int(last_link[0].get_attribute("href").split("?p=")[1])
-
-        tabs_element = driver.find_elements(
-            By.XPATH,
-            '//*[@class="p-eplist"]/div'
-        )
+        tabs_element = driver.find_elements(By.XPATH, PLIST_PATH)
 
         for tab_element in tabs_element:
             if tab_element.get_attribute("class") == "p-eplist__chapter-title":
@@ -61,10 +56,7 @@ def request_list(driver):
 
             elif tab_element.get_attribute("class") == "p-eplist__sublist":
                 assert len(chap_list) > 0
-                link_element = driver.find_elements(
-                    By.XPATH,
-                    '//*[@class="p-eplist"]/div[@class="p-eplist__sublist"]/a'
-                )[dl_index]
+                link_element = driver.find_elements(By.XPATH, LINKS_PATH)[dl_index]
 
                 chapter_title = link_element.text.split("\n")[0]
                 chapter_link = link_element.get_attribute("href")
@@ -100,10 +92,8 @@ def request_text(driver, title, chap_list):
                 driver.get(chapter["href"])
                 time.sleep(4)
 
-                text_elements = driver.find_elements(
-                    By.XPATH,
-                    '//div[@class="js-novel-text p-novel__text"]'
-                )[0].get_attribute("innerHTML")
+                text_elements = driver.find_elements(By.XPATH,TEXTS_PATH)
+                text_elements = text_elements[0].get_attribute("innerHTML")
 
                 text = re.sub("<p id=\"L\\d+\">(.+)</p>", "\\1", text_elements)
                 text = re.sub("<br>", "\n", text)
