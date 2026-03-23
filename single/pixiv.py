@@ -15,6 +15,9 @@ args = parser.parse_args()
 page_url = lambda uid, page: f"https://www.pixiv.net/users/{uid}/novels?p={page}"
 text_url = lambda pid: f"https://www.pixiv.net/novel/show.php?id={pid}"
 
+dst_dir = os.path.expanduser(args.dst)
+os.makedirs(dst_dir, exist_ok=True)
+
 INTRO_SELECTOR = 'p[id^="expandable-paragraph"]'
 PARAS_SELECTOR = 'p, h1, h2, h3, h4, h5, h6'
 NEXT_SELECTOR = 'button[class$="footer-pager-next"]'
@@ -65,7 +68,7 @@ def cruise_page(driver, index):
 
         print(f"{pid}: {title}")
         with open(
-            os.path.join(args.dst, f"{pid}.md"),
+            os.path.join(dst_dir, f"{pid}.md"),
             mode="w",
             encoding="utf-8"
         ) as writable:
