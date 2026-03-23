@@ -215,6 +215,7 @@ link_tag = ("a",)
 break_tag = ("br",)
 ruby_tag = ("ruby",)
 rt_tag = ("rt",)
+rb_tag = ("rb",)
 span_tag = ("span",)
 
 # kana regexp where `・` is removed
@@ -424,11 +425,17 @@ def parse_inline(content: BeautifulSoup, config):
         parsed.append(local_break_text)
     # potential removal for <ruby>
     elif content.name in ruby_tag:
-        parsed.append("<ruby>")
+        if local_show_ruby:
+            parsed.append("<ruby>")
         for sub_content in content.contents:
             if local_show_ruby or sub_content.name not in rt_tag:
-                parsed += parse_inline(sub_content, config)
-        parsed.append("</ruby>")
+                if not local_show_ruby and sub_content.name in rb_tag:
+                    for sub_sub_content in sub_content.contents:
+                        parsed += parse_inline(sub_sub_content, config)
+                else:
+                    parsed += parse_inline(sub_content, config)
+        if local_show_ruby:
+            parsed.append("</ruby>")
     # for <a> or <span> and other tags
     # such as <em> ... </em> or <hr>
     else:
