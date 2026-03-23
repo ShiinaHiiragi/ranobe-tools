@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--uid", type=str, default="2948941")
+parser.add_argument("-s", "--srt", type=int, default=1)
 parser.add_argument("-d", "--dst", type=str, default="~/Downloads/dst")
 parser.add_argument("-l", "--login", action="store_true")
 
@@ -50,13 +51,18 @@ def cruise_page(driver, index):
     ][0].split("?id=")[1] for tab in tabs]
 
     for pid in pids:
+        file_path = os.path.join(dst_dir, f"{pid}.md")
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            continue
+
         driver.get(text_url(pid))
-        time.sleep(2)
+        time.sleep(4)
         sub_soup, text = cruise_text(driver)
 
         texts = []
         title = sub_soup.select_one('h1').text
-        intro = sub_soup.select_one(INTRO_SELECTOR).get_text("\n")
+        intro = sub_soup.select_one(INTRO_SELECTOR)
+        intro = intro.get_text("\n") if intro else None
         texts.append(text)
 
         while len(sub_soup.select(NEXT_SELECTOR)) > 0:
@@ -67,20 +73,16 @@ def cruise_page(driver, index):
             texts.append(text)
 
         print(f"{pid}: {title}")
-        with open(
-            os.path.join(dst_dir, f"{pid}.md"),
-            mode="w",
-            encoding="utf-8"
-        ) as writable:
+        with open(file_path, mode="w", encoding="utf-8") as writable:
             writable.write(f"### {title}\n\n")
-            writable.write(f"{intro}\n\n")
+            writable.write(f"{intro}\n\n" if intro else "")
             writable.write(f"---\n\n")
             writable.write("\n\n\n\n　◇\n\n\n\n".join(texts) + "\n")
 
     return len(soup.select(f'a[href$="p={index+1}"]')) > 0
 
 if __name__ == "__main__":
-    index = 1
+    index = args.srt
     driver = webdriver.Chrome()
 
     while True:
