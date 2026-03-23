@@ -382,7 +382,7 @@ def main(src, dst, progress, name):
             writable.flush()
             save_progress(progress, 0, [])
 
-        translate(raw_list, origin, writable, progress)
+        translate(pure_list, origin, writable, progress)
         if not args_raw:
             writable.write(HTML_SUFFIX)
 
