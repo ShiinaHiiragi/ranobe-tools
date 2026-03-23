@@ -34,7 +34,7 @@ BASE_URL = "http://127.0.0.1:11434/api/generate"
 
 MAX_RETRY = 5
 SEGMENT_UNIT = 128
-SEGMENT_SIZE = 768
+SEGMENT_SIZE = 512
 PREV_CONTEXT_SIZE = 256
 
 ruby_reg = r'<rt>.*?</rt>|</?ruby>|</?rb>'
