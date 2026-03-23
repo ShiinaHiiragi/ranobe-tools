@@ -27,7 +27,7 @@ def cruise_text(driver):
     texts = "\n\n".join([(
         para.get_text("\n").strip()
         if para.name == "p"
-        else ("#" * int(para.name[1]) + " "+ para.get_text("\n").strip())
+        else ("#" * int(para.name[1] + 2) + " "+ para.get_text("\n").strip())
     ) for para in paras])
 
     return soup, texts
@@ -69,7 +69,7 @@ def cruise_page(driver, index):
             mode="w",
             encoding="utf-8"
         ) as writable:
-            writable.write(f"# {title}\n\n")
+            writable.write(f"### {title}\n\n")
             writable.write(f"{intro}\n\n")
             writable.write(f"---\n\n")
             writable.write("\n\n\n\n　◇\n\n\n\n".join(texts) + "\n")
