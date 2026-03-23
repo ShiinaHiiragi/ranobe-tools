@@ -63,6 +63,7 @@ def cruise_page(driver, index):
             sub_soup, text = cruise_text(driver)
             texts.append(text)
 
+        print(f"{pid}: {title}")
         with open(
             os.path.join(args.dst, f"{pid}.md"),
             mode="w",
@@ -70,7 +71,8 @@ def cruise_page(driver, index):
         ) as writable:
             writable.write(f"# {title}\n\n")
             writable.write(f"{intro}\n\n")
-            writable.write("\n\n\n\n　◇\n\n\n\n".join(texts))
+            writable.write(f"---\n\n")
+            writable.write("\n\n\n\n　◇\n\n\n\n".join(texts) + "\n")
 
     return len(soup.select(f'a[href$="p={index+1}"]')) > 0
 
