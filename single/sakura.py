@@ -51,7 +51,7 @@ def log(msg, level=0):
 
 def pair(writable, zh_text, jp_text, origin):
     if args_raw:
-        writable.write(zh_text + "\n")
+        writable.write(zh_text + "  \n")
         writable.write(origin(jp_text) + "\n\n")
 
     else:
