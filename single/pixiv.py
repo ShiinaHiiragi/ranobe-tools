@@ -75,8 +75,9 @@ def cruise_page(driver, index):
         print(f"{pid}: {title}")
         with open(file_path, mode="w", encoding="utf-8") as writable:
             writable.write(f"### {title}\n\n")
-            writable.write(f"{intro}\n\n" if intro else "")
-            writable.write(f"---\n\n")
+            if intro is not None:
+                writable.write(f"{intro}\n\n")
+                writable.write(f"---\n\n")
             writable.write("\n\n\n\n　◇\n\n\n\n".join(texts) + "\n")
 
     return len(soup.select(f'a[href$="p={index+1}"]')) > 0
