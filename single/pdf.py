@@ -14,6 +14,7 @@ parser.add_argument("-d", "--dst", type=str, default="~/Downloads/dst")
 args = parser.parse_args()
 args_src = os.path.expanduser(args.src)
 args_dst = os.path.expanduser(args.dst)
+os.makedirs(args_dst, exist_ok=True)
 
 VERT_TOL =  0.25
 DUP_RATIO = 0.8
