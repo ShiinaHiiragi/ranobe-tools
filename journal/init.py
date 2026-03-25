@@ -6,13 +6,22 @@ import json
 import urllib
 import datetime
 import requests
+import argparse
 
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
+root_path = os.path.dirname(os.path.dirname(__file__))
 sys.dont_write_bytecode = True
+sys.path.append(root_path)
 from utils.const import LABELS, BRANDS
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--data", type=str, default=None)
+parser.add_argument("-y", "--year", type=int, default=None)
+parser.add_argument("-m", "--month", type=int, default=None)
+
+args = parser.parse_args()
 now = datetime.datetime.now()
 books = {
     "logs": [
@@ -27,8 +36,11 @@ books = {
     "items": {}
 }
 
-month_str = f"{now.year}{now.month:02d}"
-data_path = os.path.join(os.path.split(__file__)[0], f"data/{month_str}")
+now_year = args.year if args.year else now.year
+now_month = args.month if args.month else now.month
+month_str = f"{now_year}{now_month:02d}"
+
+data_path = args.data if args.data else os.path.join(root_path, f"data/{month_str}")
 json_path = os.path.join(data_path, f"data.json")
 
 def clean_url(site, url):
@@ -102,7 +114,7 @@ if __name__ == "__main__":
     add_books(soup)
 
     for page in tqdm(range(1, page_count)):
-        url = f"https://lnovel.jp/lightnovel/monthlies/{month_str}/page/{page + 1}"
+        url = f"https://lnovel.jp/lightnovel/monthlies/{month_str}/page/{page+1}"
         response = requests.get(url)
         assert response.status_code == 200
 
