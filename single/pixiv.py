@@ -89,7 +89,7 @@ if __name__ == "__main__":
     while True:
         driver.get(page_url(args.uid, index))
         if index == args.srt and args.login:
-            print("Login manually to access hidden post")
+            print("login manually to access hidden post")
             breakpoint()
             driver.get(page_url(args.uid, index))
 

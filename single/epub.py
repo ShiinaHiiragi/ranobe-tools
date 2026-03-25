@@ -697,11 +697,11 @@ def main(temp_dir_path):
         volume_text = []
 
         def convert_md(src_file_path, dst_file_path, title, prev=None, next=None):
-            os.system(
-                f"pandoc \"{src_file_path}\" "
-                f"-o \"{dst_file_path}\" "
-                f"-f markdown+hard_line_breaks"
-            )
+            subprocess.run([
+                "pandoc", src_file_path,
+                "-o", dst_file_path,
+                "-f", "markdown+hard_line_breaks"
+            ], check=True)
 
             with open(dst_file_path, mode="r", encoding="utf-8") as readable:
                 text = readable.read()
@@ -811,7 +811,8 @@ def main(temp_dir_path):
             html_file_path = os.path.join(md_dir_path, html_filename)
             with open(md_file_path, mode="w", encoding="utf-8") as writable:
                 writable.write("\n\n".join(volume_text) + "\n")
-            convert_md(md_file_path, html_file_path, raw_filename)
+            if local_output_html:
+                convert_md(md_file_path, html_file_path, raw_filename)
 
     if len(missing) > 0:
         print(f"Missing assets: {', '.join(missing)}")

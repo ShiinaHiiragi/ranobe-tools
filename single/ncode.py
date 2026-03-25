@@ -1,13 +1,11 @@
 import os
-import re
 import time
 import argparse
 
-from tqdm import tqdm
 from functools import reduce
-
+from tqdm import tqdm
+from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--ncode", type=str, default="n0770fw")
@@ -19,12 +17,6 @@ args_dst = os.path.expanduser(args.dst)
 os.makedirs(args_dst, exist_ok=True)
 url = lambda ncode, p_idx: f"https://ncode.syosetu.com/{ncode}/?p={p_idx}/"
 
-TITLE_PATH = '//*[@class="p-novel__title"]'
-PAGER_PATH = '//*[@class="c-pager__item c-pager__item--last"]'
-PLIST_PATH = '//*[@class="p-eplist"]/div'
-LINKS_PATH = '//*[@class="p-eplist"]/div[@class="p-eplist__sublist"]/a'
-TEXTS_PATH = '//div[@class="js-novel-text p-novel__text"]'
-
 def request_list(driver):
     vol_index = args.vol
     pg_index = 1
@@ -34,37 +26,45 @@ def request_list(driver):
     chap_list = []
 
     while True:
-        dl_index = 0
         driver.get(url(args.ncode, pg_index))
         time.sleep(4)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
 
         if pg_index == 1:
-            title = driver.find_elements(By.XPATH, TITLE_PATH)[0].text
-            if len(last_link := driver.find_elements(By.XPATH, PAGER_PATH)) > 0:
-                pg_total = int(last_link[0].get_attribute("href").split("?p=")[1])
-        tabs_element = driver.find_elements(By.XPATH, PLIST_PATH)
+            title = soup.select_one(".p-novel__title").text
+            last_link = soup.select_one(".c-pager__item--last")
+            if last_link:
+                pg_total = int(last_link["href"].split("?p=")[1])
 
-        for tab_element in tabs_element:
-            if tab_element.get_attribute("class") == "p-eplist__chapter-title":
-                volume_title = tab_element.text
+        for tab in soup.select(".p-eplist > div"):
+            classes = tab.get("class", [])
+            if "p-eplist__chapter-title" in classes:
                 chap_list.append({
-                    "title": volume_title,
+                    "title": tab.text,
                     "index": vol_index,
                     "chapters": []
                 })
                 vol_index += 1
 
-            elif tab_element.get_attribute("class") == "p-eplist__sublist":
-                assert len(chap_list) > 0
-                link_element = driver.find_elements(By.XPATH, LINKS_PATH)[dl_index]
+            elif "p-eplist__sublist" in classes:
+                if len(chap_list) == 0:
+                    chap_list.append({
+                        "title": "",
+                        "index": vol_index,
+                        "chapters": []
+                    })
+                    vol_index += 1
 
-                chapter_title = link_element.text.split("\n")[0]
-                chapter_link = link_element.get_attribute("href")
+                a = tab.select_one("a")
+                href = a["href"]
+
+                if href.startswith("/"):
+                    href = "https://ncode.syosetu.com" + href
+
                 chap_list[-1]["chapters"].append({
-                    "title": chapter_title,
-                    "href": chapter_link
+                    "title": a.text.split("\n")[0],
+                    "href": href
                 })
-                dl_index += 1
 
         pg_index += 1
         if pg_index > pg_total:
@@ -85,18 +85,20 @@ def request_text(driver, title, chap_list):
         with open(volume_file_path, mode="w", encoding="utf-8") as writable:
             if list_index == 0:
                 writable.write(f"# {title}\n\n")
-            writable.write(f"## {volume['title']}\n\n")
+            if volume['title']:
+                writable.write(f"## {volume['title']}\n\n")
             writable.flush()
 
             for chapter in volume["chapters"]:
                 driver.get(chapter["href"])
                 time.sleep(4)
 
-                text_elements = driver.find_elements(By.XPATH,TEXTS_PATH)
-                text_elements = text_elements[0].get_attribute("innerHTML")
+                soup = BeautifulSoup(driver.page_source, "html.parser")
+                text_div = soup.select_one("div.js-novel-text.p-novel__text")
 
-                text = re.sub("<p id=\"L\\d+\">(.+)</p>", "\\1", text_elements)
-                text = re.sub("<br>", "\n", text)
+                for br in text_div.find_all("br"):
+                    br.replace_with("\n")
+                text = "\n".join(p.get_text() for p in text_div.find_all("p"))
 
                 writable.write(f"### {chapter['title']}\n\n")
                 writable.write(text.strip() + "\n\n")
