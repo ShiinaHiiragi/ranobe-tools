@@ -103,6 +103,7 @@ python single/epub.py
     - `-n` / `--ncode`：小说 NCode
     - `-d` / `--dst`：输出目录路径
     - `-v` / `--vol`：首卷编号，如果是番外或设定集则指定为 `0`
+    - `-c` / `--cli`：是否以无头模式启动 Selenium
 
 ### 用法示例
 
@@ -126,6 +127,7 @@ python single/ncode.py -n n7437dj
     - `-n` / `--uid`：作者 UID
     - `-s` / `--srt`：开始捕获的页码，默认为 `1`；省略也有一定限度的恢复功能
     - `-d` / `--dst`：输出目录路径
+    - `-c` / `--cli`：是否以无头模式启动 Selenium；当 `-l` 设置时该选项无效
     - `-l` / `--login`：是否登录，用于加载被隐藏的文章
 
 ### 用法示例
@@ -296,8 +298,27 @@ python single/sakura.py
 
 ## Bangumi 新刊
 
+- `journal/init.py`：收集当月轻小说新刊情报
+- `journal/post.py`：将上述情报整理为可在 Bangumi 发布的日志
+- `journal/meta.py`：[WIP]
+
+### 配置
+
+1. 安装所需包
+
+    ```shell
+    pip install requests python-dotenv beautifulsoup4 rapidfuzz
+    ```
+
+2. `journal/init.py`：[WIP]
+
+3. `journal/post.py`：[WIP]
+
+4. `journal/meta.py`：[WIP]
+
+### 用法示例
+
 ```shell
-pip install requests python-dotenv beautifulsoup4 rapidfuzz
 python journal/init.py
 python journal/post.py
 python journal/meta.py

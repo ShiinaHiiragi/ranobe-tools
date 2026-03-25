@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--uid", type=str, default="2948941")
 parser.add_argument("-s", "--srt", type=int, default=1)
 parser.add_argument("-d", "--dst", type=str, default="~/Downloads/dst")
+parser.add_argument("-c", "--cli", action="store_true")
 parser.add_argument("-l", "--login", action="store_true")
 
 args = parser.parse_args()
@@ -83,9 +84,12 @@ def cruise_page(driver, index):
     return len(soup.select(f'a[href$="p={index+1}"]')) > 0
 
 if __name__ == "__main__":
-    index = args.srt
+    options = webdriver.ChromeOptions()
+    if args.cli and not args.login:
+        options.add_argument("--headless=new")
     driver = webdriver.Chrome()
 
+    index = args.srt
     while True:
         driver.get(page_url(args.uid, index))
         if index == args.srt and args.login:
