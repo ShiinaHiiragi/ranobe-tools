@@ -16,18 +16,18 @@ args_src = os.path.expanduser(args.src)
 args_dst = os.path.expanduser(args.dst)
 os.makedirs(args_dst, exist_ok=True)
 
-VERT_TOL =  0.25
+VERT_TOL_RATIO = 0.3
 DUP_RATIO = 0.8
 SPLIT_FLAG = ("。", "」", "）")
 
-def group_lines(chars):
+def group_lines(chars, vert_tol):
     lines = []
     chars = sorted(chars, key=lambda c: -c["y1"])
 
     for c in chars:
         placed = False
         for line in lines:
-            if abs(c["y1"] - line["y_mean"]) < VERT_TOL:
+            if abs(c["y1"] - line["y_mean"]) < vert_tol:
                 line["chars"].append(c)
                 line["y_mean"] = (
                     line["y_mean"] * (len(line["chars"]) - 1) + c["y1"]
@@ -63,9 +63,12 @@ def extract_text(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             chars = page.chars
+            if not chars:
+                continue
+
             sizes = [c["size"] for c in chars]
             median_size = statistics.median(sizes)
-            x_values = [c["x1"] for c in chars]
+            x_values = [c["x0"] for c in chars]
             x_center = (min(x_values) + max(x_values)) / 2
 
             filtered_chars = [
@@ -74,16 +77,17 @@ def extract_text(pdf_path):
             ]
 
             lines = []
-            grouped_lines = group_lines(filtered_chars)
+            vert_tol = median_size * VERT_TOL_RATIO
+            grouped_lines = group_lines(filtered_chars, vert_tol)
             for line_chars in grouped_lines:
-                line_chars.sort(key=lambda c: c["x1"])
-                first_x = line_chars[0]["x1"]
+                line_chars.sort(key=lambda c: c["x0"])
+                first_x = line_chars[0]["x0"]
                 if abs(first_x - x_center) < 20 and len(line_chars) <= 3:
                     continue
 
                 text = "".join(c["text"] for c in line_chars)
+                text = text.replace("゛", "゙").replace("゜", "゚")
                 text = unicodedata.normalize("NFC", text)
-                text = text.replace("゛", " ゙").replace("゜", " ゚")
                 lines.append(text)
 
             all_pages_lines.append(lines)
@@ -124,7 +128,10 @@ def extract_text(pdf_path):
     return paras
 
 if __name__ == "__main__":
-    for name in tqdm(os.listdir(args_src)):
+    for name in tqdm(
+        f for f in os.listdir(args_src)
+        if f.lower().endswith(".pdf")
+    ):
         lines = extract_text(os.path.join(args_src, name))
         new_path = os.path.join(args_dst, f"{os.path.splitext(name)[0]}.txt")
 
