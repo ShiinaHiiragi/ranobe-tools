@@ -2,7 +2,6 @@ import os
 import time
 import argparse
 
-from functools import reduce
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -11,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--ncode", type=str, default="n0770fw")
 parser.add_argument("-d", "--dst", type=str, default="~/Downloads/dst")
 parser.add_argument("-v", "--vol", type=int, default=1)
+parser.add_argument("-c", "--cli", action="store_true")
 
 args = parser.parse_args()
 args_dst = os.path.expanduser(args.dst)
@@ -40,7 +40,7 @@ def request_list(driver):
             classes = tab.get("class", [])
             if "p-eplist__chapter-title" in classes:
                 chap_list.append({
-                    "title": tab.text,
+                    "title": tab.text.strip(),
                     "index": vol_index,
                     "chapters": []
                 })
@@ -62,7 +62,7 @@ def request_list(driver):
                     href = "https://ncode.syosetu.com" + href
 
                 chap_list[-1]["chapters"].append({
-                    "title": a.text.split("\n")[0],
+                    "title": a.text.strip(),
                     "href": href
                 })
 
@@ -73,11 +73,7 @@ def request_list(driver):
     return title, chap_list
 
 def request_text(driver, title, chap_list):
-    pbar = tqdm(total=reduce(
-        lambda now, next: now + len(next["chapters"]),
-        chap_list,
-        0
-    ))
+    pbar = tqdm(total=sum(len(v["chapters"]) for v in chap_list))
 
     for list_index, volume in enumerate(chap_list):
         volume_file_path = os.path.join(args_dst, f"{volume['index']:02d}.md")
@@ -89,7 +85,7 @@ def request_text(driver, title, chap_list):
                 writable.write(f"## {volume['title']}\n\n")
             writable.flush()
 
-            for chapter in volume["chapters"]:
+            for chap_index, chapter in enumerate(volume["chapters"]):
                 driver.get(chapter["href"])
                 time.sleep(4)
 
@@ -98,14 +94,24 @@ def request_text(driver, title, chap_list):
 
                 for br in text_div.find_all("br"):
                     br.replace_with("\n")
-                text = "\n".join(p.get_text() for p in text_div.find_all("p"))
+                text = "\n\n".join(
+                    p.get_text().strip()
+                    for p in text_div.find_all("p")
+                    if p.get_text().strip()
+                )
 
+                if chap_index > 0:
+                    writable.write("\n\n")
                 writable.write(f"### {chapter['title']}\n\n")
                 writable.write(text.strip() + "\n\n")
                 writable.flush()
                 pbar.update(1)
 
 if __name__ == "__main__":
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    if args.cli:
+        options.add_argument("--headless=new")
+    driver = webdriver.Chrome(options=options)
+
     title, chap_list = request_list(driver)
     request_text(driver, title, chap_list)
