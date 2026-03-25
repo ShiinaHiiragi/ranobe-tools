@@ -310,11 +310,18 @@ python single/sakura.py
     pip install requests python-dotenv beautifulsoup4 rapidfuzz
     ```
 
-2. `journal/init.py`：[WIP]
+2. `journal/init.py` 的命令行参数
+    - `-d` / `--data`：输出数据目录，默认为仓库根目录的 `data/`
+    - `-y` / `--year`：目标年份，默认为当前年份
+    - `-m` / `--month`：目标月份，默认为当前月份
 
-3. `journal/post.py`：[WIP]
+3. `journal/post.py` 的环境参数：在项目根目录新建 `.env` 文件，填入如下环境变量
 
-4. `journal/meta.py`：[WIP]
+    [WIP]
+
+4. `journal/meta.py` 的环境参数：在上述 `.env` 文件中填入如下环境变量
+
+    [WIP]
 
 ### 用法示例
 
