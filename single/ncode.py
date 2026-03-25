@@ -92,13 +92,9 @@ def request_text(driver, title, chap_list):
                 soup = BeautifulSoup(driver.page_source, "html.parser")
                 text_div = soup.select_one("div.js-novel-text.p-novel__text")
 
-                for br in text_div.find_all("br"):
-                    br.replace_with("\n")
-                text = "\n\n".join(
-                    p.get_text().strip()
-                    for p in text_div.find_all("p")
-                    if p.get_text().strip()
-                )
+                text = ""
+                for p in text_div.find_all("p"):
+                    text += p.get_text().strip() + "\n"
 
                 if chap_index > 0:
                     writable.write("\n\n")
