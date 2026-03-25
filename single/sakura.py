@@ -50,7 +50,10 @@ def log(msg, level=0):
     print("  " * level + msg)
 
 def pair(writable, zh_text, jp_text, origin):
-    if args_raw:
+    if jp_text.startswith("<img"):
+        writable.write(origin(jp_text) + "\n\n")
+
+    elif args_raw:
         writable.write(zh_text + "  \n")
         writable.write(origin(jp_text) + "\n\n")
 

@@ -31,7 +31,7 @@ def cruise_text(driver):
     texts = "\n\n".join([(
         para.get_text("\n").strip()
         if para.name == "p"
-        else ("#" * int(para.name[1] + 2) + " "+ para.get_text("\n").strip())
+        else ("#" * (int(para.name[1]) + 2) + " "+ para.get_text("\n").strip())
     ) for para in paras])
 
     return soup, texts
