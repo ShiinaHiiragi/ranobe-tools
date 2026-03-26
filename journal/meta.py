@@ -44,14 +44,14 @@ def _filter(title, response, series):
             and sim(title, entry["name"]) >= 0.5
     ]
 
-def _init_info(todo, title, link, label, date):
+def _init(todo, title, link, label, date):
     todo.append({
         "title": title,
         "page": None,
         "link": link,
         "info": {
-            "author": "",
-            "illust": "",
+            "author": [],
+            "illust": [],
             "publisher": label["pub"],
             "label": label["jp"],
             "price": "",
@@ -76,6 +76,25 @@ def _init_info(todo, title, link, label, date):
         "stage": 0
     })
 
+def _split(cc_str):
+    # content creators (cc_str) example:
+    # "泉サリ(著・絵)"
+    # "浅葱(著) , しの(絵)"
+    author, illust = [], []
+    if len(cc_str) == 0:
+        return author, illust
+
+    cc_list = [item.strip() for item in cc_str.split(",")]
+    for cc_item in cc_list:
+        if cc_item.endswith("(著・絵)"):
+            author.append(cc_item[:-5])
+            illust.append(cc_item[:-5])
+        elif cc_item.endswith("(著)"):
+            author.append(cc_item[:-3])
+        elif cc_item.endswith("(絵)"):
+            illust.append(cc_item[:-3])
+    return author, illust
+
 def save_info(todo):
     with open(info_path, mode="w", encoding="utf-8") as w:
         json.dump(todo, w, ensure_ascii=False, indent=4)
@@ -95,7 +114,7 @@ def init_info():
                 for book in books["items"][date][label]:
                     assert book["page"] is not None
                     if book["page"] == "":
-                        _init_info(
+                        _init(
                             todo,
                             book["title"],
                             book["link"],
@@ -131,11 +150,12 @@ def fill_info(todo):
                 item.select_one("span.categoryValue").text.strip()
                 for item in soup.select("li.productInfo")
             }
+
+            author, illust = _split(meta.get("著者／編集", ""))
             price = round(int(soup.select_one("span.price")["content"]) * 10 / 11)
 
-            item["info"]["author"] = ""
-            item["info"]["illust"] = ""
-            item["info"]["publisher"] = ""
+            item["info"]["author"] = author
+            item["info"]["illust"] = illust
             item["info"]["price"] = str(price)
             item["info"]["pages"] = meta.get("ページ数", "").strip("p")
             item["info"]["isbn"] = meta.get("ISBN", "")
@@ -151,7 +171,6 @@ def fill_info(todo):
             # download image of cover
             ...
 
-
             # process series
             ...
 
@@ -160,12 +179,12 @@ def fill_info(todo):
 
         if item["stage"] == 1:
             title = item["title"]
-            # response = search()
-            # item["series"] = _filter(title, response, series=True)
-            # item["search"] = _filter(title, response, series=False)
-            # item["stage"] = 2
+            response = search()
+            item["series"] = _filter(title, response, series=True)
+            item["search"] = _filter(title, response, series=False)
+            item["stage"] = 2
 
-            # save_info(todo)
+            save_info(todo)
 
         index += 1
 
