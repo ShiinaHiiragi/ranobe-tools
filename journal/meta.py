@@ -1,12 +1,16 @@
 import sys
 import os
-import re
+import io
 import json
 import time
 import datetime
 import argparse
 
+import dotenv
+import requests
+
 from urllib.parse import urlparse
+from PIL import Image
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
@@ -35,22 +39,8 @@ info_path = os.path.join(data_path, f"info.json")
 imgs_path = os.path.join(data_path, f"images")
 os.makedirs(imgs_path, exist_ok=True)
 
-download_script = lambda filename: f"""
-    var url = arguments[0];
-    var filename = '{filename}';
-
-    fetch(url)
-        .then(response => response.blob())
-        .then(blob => {{
-            var a = document.createElement('a');
-            a.href = window.URL.createObjectURL(blob);
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }})
-        .catch(console.error);
-"""
+dotenv.load_dotenv(os.path.join(root_path, ".env"))
+user_agent = os.environ["USER_AGENT"]
 
 def _filter(title, response, series):
     return [{
@@ -110,6 +100,14 @@ def _split(cc_str):
         elif cc_item.endswith("(絵)"):
             illust.append(cc_item[:-3])
     return author, illust
+
+def _convert(img_data, img_name):
+    img = Image.open(io.BytesIO(img_data))
+    if img.format != "JPEG":
+        img_name = os.path.splitext(img_name)[0] + ".jpg"
+        img.convert("RGB").save((buf := io.BytesIO()), format="JPEG")
+        img_data = buf.getvalue()
+    return img_data, img_name
 
 def save_info(todo):
     with open(info_path, mode="w", encoding="utf-8") as w:
@@ -189,14 +187,18 @@ def fill_info(todo):
 
             # download image of cover
             img_element = soup.select("div#imageSliderWrap img")[0]
-            img_url = img_element.attrs["src"]
-            img_name = os.path.basename(urlparse(img_url.split("?")[0]).path)
+            img_url = "https:" + img_element.attrs["src"].split("?")[0]
+            img_name = os.path.basename(urlparse(img_url).path)
 
-            driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-                "behavior": "allow",
-                "downloadPath": imgs_path
-            })
-            driver.execute_script(download_script(img_name), img_url)
+            session = requests.Session()
+            session.headers["User-Agent"] = user_agent
+            for cookie in driver.get_cookies():
+                session.cookies.set(cookie["name"], cookie["value"])
+
+            response = session.get(img_url)
+            img_data, img_name = _convert(response.content, img_name)
+            with open(os.path.join(imgs_path, img_name), "wb") as f:
+                f.write(img_data)
             item["cover"] = img_name
 
             # process series

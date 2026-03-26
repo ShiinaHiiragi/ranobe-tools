@@ -30,10 +30,10 @@ args = parser.parse_args()
 always_update = args.update
 last_post = args.post
 
-dotenv.load_dotenv()
-ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
-USER_ID = os.environ["USER_ID"]
-USER_AGENT = os.environ["USER_AGENT"]
+dotenv.load_dotenv(os.path.join(root_path, ".env"))
+access_token = os.environ["ACCESS_TOKEN"]
+user_id = os.environ["USER_ID"]
+user_agent = os.environ["USER_AGENT"]
 
 now = datetime.datetime.now()
 limit = 12 * 60 * 60 * 1000
@@ -79,8 +79,8 @@ def search(title: str, **kwargs) -> dict:
     return requests.post(
         f"https://api.bgm.tv/v0/search/subjects",
         headers={
-            "Authorization": f"Bearer {ACCESS_TOKEN}",
-            "User-Agent": f"{USER_ID}/blog-info-search"
+            "Authorization": f"Bearer {access_token}",
+            "User-Agent": f"{user_id}/blog-info-search"
         },
         params={
             "limit": 15
@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     if last_post != "":
         last_url = f"https://bgm.tv/blog/{last_post}"
-        response = requests.get(last_url, headers={"User-Agent": USER_AGENT})
+        response = requests.get(last_url, headers={"User-Agent": user_agent})
         response.encoding = "utf-8"
 
         soup = BeautifulSoup(response.text, "html.parser")
