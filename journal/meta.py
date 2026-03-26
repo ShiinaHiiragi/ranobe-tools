@@ -2,18 +2,30 @@ import sys
 import os
 import json
 import datetime
+import argparse
 
 from selenium import webdriver
 
+root_path = os.path.dirname(os.path.dirname(__file__))
 sys.dont_write_bytecode = True
-from post import sim, search
+sys.path.append(root_path)
+from journal.post import sim, search
 from utils.const import LABELS
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-y", "--year", type=int, default=None)
+parser.add_argument("-m", "--month", type=int, default=None)
+parser.add_argument("-d", "--data", type=str, default=None)
+
+args = parser.parse_args()
 now = datetime.datetime.now()
 todo = []
 
-month_str = f"{now.year}{now.month:02d}"
-data_path = os.path.join(os.path.split(__file__)[0], f"data/{month_str}")
+now_year = args.year if args.year else now.year
+now_month = args.month if args.month else now.month
+month_str = f"{now_year}{now_month:02d}"
+
+data_path = args.data if args.data else os.path.join(root_path, f"data/{month_str}")
 json_path = os.path.join(data_path, f"data.json")
 info_path = os.path.join(data_path, f"info.json")
 
@@ -69,9 +81,7 @@ if __name__ == "__main__":
 
     for item in todo:
         if item["stage"] == 0:
-            driver = webdriver.Chrome()
-            
-
+            # driver = webdriver.Chrome()
 
             item["stage"] = 1
             with open(info_path, mode="w", encoding="utf-8") as w:
