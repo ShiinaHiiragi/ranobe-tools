@@ -2,9 +2,11 @@ import sys
 import os
 import re
 import json
+import time
 import datetime
 import argparse
 
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
@@ -33,6 +35,23 @@ info_path = os.path.join(data_path, f"info.json")
 imgs_path = os.path.join(data_path, f"images")
 os.makedirs(imgs_path, exist_ok=True)
 
+download_script = lambda filename: f"""
+    var url = arguments[0];
+    var filename = '{filename}';
+
+    fetch(url)
+        .then(response => response.blob())
+        .then(blob => {{
+            var a = document.createElement('a');
+            a.href = window.URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }})
+        .catch(console.error);
+"""
+
 def _filter(title, response, series):
     return [{
         "title": entry["name"],
@@ -44,11 +63,11 @@ def _filter(title, response, series):
             and sim(title, entry["name"]) >= 0.5
     ]
 
-def _init(todo, title, link, label, date):
+def _init(todo, entry, label, date):
     todo.append({
-        "title": title,
+        "title": entry["title"],
         "page": None,
-        "link": link,
+        "link": entry["link"],
         "info": {
             "author": [],
             "illust": [],
@@ -60,10 +79,7 @@ def _init(todo, title, link, label, date):
             "isbn": ""
         },
         "desc": "",
-        "cover": {
-            "link": "",
-            "stage": 0
-        },
+        "cover": "",
         "series": {
             "name": "",
             "order": 0,
@@ -114,13 +130,8 @@ def init_info():
                 for book in books["items"][date][label]:
                     assert book["page"] is not None
                     if book["page"] == "":
-                        _init(
-                            todo,
-                            book["title"],
-                            book["link"],
-                            LABELS[label],
-                            f"{now.year}-{now.month:02d}-{int(date):02d}"
-                        )
+                        date_str = f"{now_year}-{now_month:02d}-{int(date):02d}"
+                        _init(todo, book, LABELS[label], date_str)
 
         save_info(todo)
         return todo
@@ -130,17 +141,25 @@ def fill_info(todo):
     while True:
         if index >= len(todo):
             break
+
         item = todo[index]
+        title = item["title"]
 
         if item["stage"] == 0:
-            driver = webdriver.Chrome()
+            options = webdriver.ChromeOptions()
+            options.add_experimental_option("prefs", {
+                "download.default_directory": imgs_path,
+                "download.prompt_for_download": False,
+                "download.directory_upgrade": True,
+                "safebrowsing.enabled": True
+            })
+            driver = webdriver.Chrome(options=options)
+
             if BRANDS["rakuten"] not in item["link"]:
                 del todo[index]
                 continue
-
-            rakuten_link = item["link"][BRANDS["rakuten"]]
-            bid = re.search(r'rb/(\d+)', rakuten_link)[1]
-            driver.get(rakuten_link)
+            time.sleep(2)
+            driver.get(item["link"][BRANDS["rakuten"]])
             html = driver.page_source
             soup = BeautifulSoup(html, "html.parser")
 
@@ -169,21 +188,29 @@ def fill_info(todo):
                 item["desc"] = list(desc.values())[0]
 
             # download image of cover
-            ...
+            img_element = soup.select("div#imageSliderWrap img")[0]
+            img_url = img_element.attrs["src"]
+            img_name = os.path.basename(urlparse(img_url.split("?")[0]).path)
+
+            driver.execute_cdp_cmd("Page.setDownloadBehavior", {
+                "behavior": "allow",
+                "downloadPath": imgs_path
+            })
+            driver.execute_script(download_script(img_name), img_url)
+            item["cover"] = img_name
 
             # process series
-            ...
+            time.sleep(4)
 
             item["stage"] = 1
             save_info(todo)
 
         if item["stage"] == 1:
-            title = item["title"]
-            response = search()
+            response = search(title)
             item["series"] = _filter(title, response, series=True)
             item["search"] = _filter(title, response, series=False)
-            item["stage"] = 2
 
+            item["stage"] = 2
             save_info(todo)
 
         index += 1
