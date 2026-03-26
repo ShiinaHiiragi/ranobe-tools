@@ -19,7 +19,6 @@ parser.add_argument("-d", "--data", type=str, default=None)
 
 args = parser.parse_args()
 now = datetime.datetime.now()
-todo = []
 
 now_year = args.year if args.year else now.year
 now_month = args.month if args.month else now.month
@@ -40,58 +39,77 @@ def filter(series: bool):
             and sim(item["title"], entry["name"]) >= 0.5
     ]
 
+def _init_info(todo, title, link, label, date):
+    todo.append({
+        "title": title,
+        "page": None,
+        "link": link,
+        "info": {
+            "author": "",
+            "illust": "",
+            "publisher": "",
+            "label": label,
+            "price": "",
+            "date": date,
+            "pages": "",
+            "isbn": ""
+        },
+        "desc": "",
+        "cover": "",
+        "series": {
+            "name": "",
+            "order": 0,
+            "abstract": []
+        },
+        "search": {
+            "single": [],
+            "series": []
+        },
+        "stage": 0
+    })
+
+def init_info():
+    if os.path.exists(info_path):
+        with open(info_path, mode="r", encoding="utf-8") as r:
+            return json.load(r)
+
+    else:
+        todo = []
+        with open(json_path, mode="r", encoding="utf-8") as r:
+            books = json.load(r)
+
+        for date in books["items"]:
+            for label in books["items"][date]:
+                for book in books["items"][date][label]:
+                    if book["page"] == "":
+                        _init_info(
+                            todo,
+                            book["title"],
+                            book["link"],
+                            LABELS[label][0],
+                            f"{now.year}-{now.month:02d}-{int(date):02d}"
+                        )
+
+        with open(info_path, mode="w", encoding="utf-8") as w:
+            json.dump(todo, w, ensure_ascii=False, indent=4)
+        return todo
+
 if __name__ == "__main__":
-    with open(json_path, mode="r", encoding="utf-8") as r:
-        books = json.load(r)
+    todo = init_info()
 
-    for date in books["items"]:
-        for label in books["items"][date]:
-            for book in books["items"][date][label]:
-                if book["page"] == "":
-                    todo.append({
-                        "title": book["title"],
-                        "page": None,
-                        "link": book["link"],
-                        "info": {
-                            "author": "",
-                            "illust": "",
-                            "publisher": "",
-                            "label": LABELS[label][0],
-                            "price": "",
-                            "date": f"{now.year}-{now.month:02d}-{int(date):02d}",
-                            "pages": "",
-                            "isbn": ""
-                        },
-                        "desc": "",
-                        "cover": "",
-                        "series": {
-                            "name": "",
-                            "order": 0,
-                            "abstract": []
-                        },
-                        "search": {
-                            "single": [],
-                            "series": []
-                        },
-                        "stage": 0
-                    })
+    # for item in todo:
+    #     if item["stage"] == 0:
+    #         # driver = webdriver.Chrome()
 
-    with open(info_path, mode="w", encoding="utf-8") as w:
-        json.dump(todo, w, ensure_ascii=False, indent=4)
+    #         item["stage"] = 1
+    #         with open(info_path, mode="w", encoding="utf-8") as w:
+    #             json.dump(todo, w, ensure_ascii=False, indent=4)
 
-    for item in todo:
-        if item["stage"] == 0:
-            # driver = webdriver.Chrome()
+    #     if item["stage"] == 1:
+    #         response = search(item["title"])
+    #         # item["series"] = filter(True)
+    #         # item["search"] = filter(False)
+    #         # item["stage"] = 2
 
-            item["stage"] = 1
-            with open(info_path, mode="w", encoding="utf-8") as w:
-                json.dump(todo, w, ensure_ascii=False, indent=4)
-
-        if item["stage"] == 1:
-            response = search(item["title"])
-            # item["series"] = filter(True)
-            # item["search"] = filter(False)
-            # item["stage"] = 2
-
-            with open(info_path, mode="w", encoding="utf-8") as w:
-                json.dump(todo, w, ensure_ascii=False, indent=4)
+    #         with open(info_path, mode="w", encoding="utf-8") as w:
+    #             json.dump(todo, w, ensure_ascii=False, indent=4)
