@@ -17,9 +17,9 @@ sys.path.append(root_path)
 from utils.const import LABELS, BRANDS
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-d", "--data", type=str, default=None)
 parser.add_argument("-y", "--year", type=int, default=None)
 parser.add_argument("-m", "--month", type=int, default=None)
+parser.add_argument("-d", "--data", type=str, default=None)
 
 args = parser.parse_args()
 now = datetime.datetime.now()

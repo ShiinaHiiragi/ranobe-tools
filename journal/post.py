@@ -14,26 +14,36 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 from rapidfuzz import fuzz
 
+root_path = os.path.dirname(os.path.dirname(__file__))
 sys.dont_write_bytecode = True
+sys.path.append(root_path)
 from utils.const import LABELS, BRANDS
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--update", action="store_true") 
+parser.add_argument("-y", "--year", type=int, default=None)
+parser.add_argument("-m", "--month", type=int, default=None)
+parser.add_argument("-d", "--data", type=str, default=None)
+parser.add_argument("-p", "--post", type=str, default="")
+parser.add_argument("-u", "--update", action="store_true")
+
 args = parser.parse_args()
 always_update = args.update
+last_post = args.post
 
 dotenv.load_dotenv()
-USER_AGENT = os.environ["USER_AGENT"]
-USER_ID = os.environ["USER_ID"]
 ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
-LAST_POST = os.environ.get("LAST_POST", "")
+USER_ID = os.environ["USER_ID"]
+USER_AGENT = os.environ["USER_AGENT"]
 
 now = datetime.datetime.now()
 limit = 12 * 60 * 60 * 1000
 lines = []
 
-month_str = f"{now.year}{now.month:02d}"
-data_path = os.path.join(os.path.split(__file__)[0], f"data/{month_str}")
+now_year = args.year if args.year else now.year
+now_month = args.month if args.month else now.month
+month_str = f"{now_year}{now_month:02d}"
+
+data_path = args.data if args.data else os.path.join(root_path, f"data/{month_str}")
 json_path = os.path.join(data_path, f"data.json")
 text_path = os.path.join(data_path, f"post.txt")
 
@@ -118,8 +128,8 @@ if __name__ == "__main__":
         last_month = 12
         last_year -= 1
 
-    if LAST_POST != "":
-        last_url = f"https://bgm.tv/blog/{LAST_POST}"
+    if last_post != "":
+        last_url = f"https://bgm.tv/blog/{last_post}"
         response = requests.get(last_url, headers={"User-Agent": USER_AGENT})
         response.encoding = "utf-8"
 
