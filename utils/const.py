@@ -455,34 +455,146 @@ HTML_SUFFIX = """</div></div>
 """
 
 LABELS = {
-    "dengekibunko":       ("電撃文庫", "电击文库"),
-    "fantasiabunko":      ("ファンタジア文庫", "富士见 Fantasia 文库"),
-    "sneakerbunko":       ("角川スニーカー文庫", "角川 Sneaker 文库"),
-    "mfbunkoj":           ("MF文庫J", "MF 文库 J"),
-    "famitsubunko":       ("ファミ通文庫", "Fami 通文库"),
-    "mwbunko":            ("メディアワークス文庫", "MediaWorks 文库"),
-    "dengeki_shinbungei": ("電撃の新文芸", "电击新文艺"),
-    "mfbooks":            ("MFブックス", "MF BOOKS"),
-    "dragon_novels":      ("ドラゴンノベルス", "Dragon NOVELS"),
-    "kadokawabooks":      ("カドカワBOOKS", "角川 BOOKS"),
-    "nolabel_kadokawa":   ("KADOKAWA 単行本", "角川单行本"),
-    "gagagabunko":        ("ガガガ文庫", "GAGAGA 文库"),
-    "lanove_kodansha":    ("講談社ラノベ文庫", "讲谈社轻小说文库"),
-    "klanove":            ("Kラノベブックス", "K BOOKS"),
-    "ga":                 ("GA文庫", "GA 文库"),
-    "ga_novel":           ("GAノベル", "GA NOVELS"),
-    "dash_shueisha":      ("ダッシュエックス文庫", "DashX 文库"),
-    "overlap":            ("オーバーラップ文庫", "Overlap 文库"),
-    "overlap_novels":     ("オーバーラップノベルス", "Overlap NOVELS"),
-    "hj":                 ("HJ文庫", "HJ 文库"),
-    "hj_novels":          ("HJノベルス", "HJ NOVELS"),
-    "gcn_bunko":          ("GCN文庫", "GCN 文库"),
-    "gcn":                ("GCノベルズ", "GC NOVELS"),
-    "to_bunko":           ("TO文庫", "TO 文库"),
-    "to":                 ("TOブックス", "TO BOOKS"),
-    "herobunko":          ("ヒーロー文庫", "HERO 文库"),
-    "bravenovel":         ("ブレイブ文庫", "Brave 文库"),
-    "es":                 ("アース・スターノベル", "Earth Star")
+    "dengekibunko": {
+        "jp": "電撃文庫",
+        "zh": "电击文库",
+        "pub": "KADOKAWA"
+    },
+    "fantasiabunko": {
+        "jp": "ファンタジア文庫",
+        "zh": "富士见 Fantasia 文库",
+        "pub": "KADOKAWA"
+    },
+    "sneakerbunko": {
+        "jp": "角川スニーカー文庫",
+        "zh": "角川 Sneaker 文库",
+        "pub": "KADOKAWA"
+    },
+    "mfbunkoj": {
+        "jp": "MF文庫J",
+        "zh": "MF 文库 J",
+        "pub": "KADOKAWA"
+    },
+    "famitsubunko": {
+        "jp": "ファミ通文庫",
+        "zh": "Fami 通文库",
+        "pub": "KADOKAWA"
+    },
+    "mwbunko": {
+        "jp": "メディアワークス文庫",
+        "zh": "MediaWorks 文库",
+        "pub": "KADOKAWA"
+    },
+    "dengeki_shinbungei": {
+        "jp": "電撃の新文芸",
+        "zh": "电击新文艺",
+        "pub": "KADOKAWA"
+    },
+    "mfbooks": {
+        "jp": "MFブックス",
+        "zh": "MF BOOKS",
+        "pub": "KADOKAWA"
+    },
+    "dragon_novels": {
+        "jp": "ドラゴンノベルス",
+        "zh": "Dragon NOVELS",
+        "pub": "KADOKAWA"
+    },
+    "kadokawabooks": {
+        "jp": "カドカワBOOKS",
+        "zh": "角川 BOOKS",
+        "pub": "KADOKAWA"
+    },
+    "nolabel_kadokawa": {
+        "jp": "KADOKAWA 単行本",
+        "zh": "角川单行本",
+        "pub": "KADOKAWA"
+    },
+    "gagagabunko": {
+        "jp": "ガガガ文庫",
+        "zh": "GAGAGA 文库",
+        "pub": "小学館"
+    },
+    "lanove_kodansha": {
+        "jp": "講談社ラノベ文庫",
+        "zh": "讲谈社轻小说文库",
+        "pub": "講談社"
+    },
+    "klanove": {
+        "jp": "Kラノベブックス",
+        "zh": "K BOOKS",
+        "pub": "講談社"
+    },
+    "ga": {
+        "jp": "GA文庫",
+        "zh": "GA 文库",
+        "pub": "SBクリエイティブ"
+    },
+    "ga_novel": {
+        "jp": "GAノベル",
+        "zh": "GA NOVELS",
+        "pub": "SBクリエイティブ"
+    },
+    "dash_shueisha": {
+        "jp": "ダッシュエックス文庫",
+        "zh": "DashX 文库",
+        "pub": "集英社"
+    },
+    "overlap": {
+        "jp": "オーバーラップ文庫",
+        "zh": "Overlap 文库",
+        "pub": "オーバーラップ"
+    },
+    "overlap_novels": {
+        "jp": "オーバーラップノベルス",
+        "zh": "Overlap NOVELS",
+        "pub": "オーバーラップ"
+    },
+    "hj": {
+        "jp": "HJ文庫",
+        "zh": "HJ 文库",
+        "pub": "ホビージャパン"
+    },
+    "hj_novels": {
+        "jp": "HJノベルス",
+        "zh": "HJ NOVELS",
+        "pub": "ホビージャパン"
+    },
+    "gcn_bunko": {
+        "jp": "GCN文庫",
+        "zh": "GCN 文库",
+        "pub": "マイクロマガジン社"
+    },
+    "gcn": {
+        "jp": "GCノベルズ",
+        "zh": "GC NOVELS",
+        "pub": "マイクロマガジン社"
+    },
+    "to_bunko": {
+        "jp": "TO文庫",
+        "zh": "TO 文库",
+        "pub": "TOブックス"
+    },
+    "to": {
+        "jp": "TOブックス",
+        "zh": "TO BOOKS",
+        "pub": "TOブックス"
+    },
+    "herobunko": {
+        "jp": "ヒーロー文庫",
+        "zh": "HERO 文库",
+        "pub": "主婦の友インフォス"
+    },
+    "bravenovel": {
+        "jp": "ブレイブ文庫",
+        "zh": "Brave 文库",
+        "pub": "一二三書房"
+    },
+    "es": {
+        "jp": "アース・スターノベル",
+        "zh": "Earth Star",
+        "pub": "アース・スター エンターテイメント"
+    }
 }
 
 BRANDS = {

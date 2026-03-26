@@ -149,7 +149,7 @@ if __name__ == "__main__":
     for date in books["items"]:
         lines.append(f"[b][size=25]{now.month}/{date}[/size][/b]")
         for label in books["items"][date]:
-            lines.append(f"[b][size=20]{LABELS[label][1]}[/size][/b]")
+            lines.append(f"[b][size=20]{LABELS[label]['zh']}[/size][/b]")
             for entry in books["items"][date][label]:
                 if (always_update and stage_clear and entry["page"] == "") \
                     or entry["page"] is None:
@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
             lines.append("")
 
-    lines.append(f"收录书系：{'、'.join([LABELS[item][1] for item in LABELS])}")
+    lines.append(f"收录书系：{'、'.join([LABELS[item]['zh'] for item in LABELS])}")
     lines.append(f"数据来源：[url=https://lnovel.jp/]ライトノベル新刊・アニメの放送予定と原作情報まとめサイト[/url]")
 
     with open(text_path, mode="w", encoding="utf-8") as w:
