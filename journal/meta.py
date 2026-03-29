@@ -109,6 +109,61 @@ def _convert(img_data, img_name):
         img_data = buf.getvalue()
     return img_data, img_name
 
+def _read_one(item, driver):
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+
+    # get meta info
+    meta = {
+        item.select_one("span.category").text.strip():
+        item.select_one("span.categoryValue").text.strip()
+        for item in soup.select("li.productInfo")
+    }
+
+    author, illust = _split(meta.get("著者／編集", ""))
+    price = round(int(soup.select_one("span.price")["content"]) * 10 / 11)
+
+    item["info"]["author"] = author
+    item["info"]["illust"] = illust
+    item["info"]["price"] = str(price)
+    item["info"]["pages"] = meta.get("ページ数", "").strip("p")
+    item["info"]["isbn"] = meta.get("ISBN", "")
+
+    # get first desc from jpro / book database
+    desc = {
+        item.text.strip(): item.find_next_sibling().text.strip()
+        for item in soup.select("div.saleDesc h3")
+    }
+    if len(desc) > 0:
+        item["desc"] = list(desc.values())[0]
+
+    # download image of cover
+    img_element = soup.select("div#imageSliderWrap img")[0]
+    img_url = "https:" + img_element.attrs["src"].split("?")[0]
+    img_name = os.path.basename(urlparse(img_url).path)
+
+    session = requests.Session()
+    session.headers["User-Agent"] = user_agent
+    for cookie in driver.get_cookies():
+        session.cookies.set(cookie["name"], cookie["value"])
+
+    response = session.get(img_url)
+    img_data, img_name = _convert(response.content, img_name)
+    with open(os.path.join(imgs_path, img_name), "wb") as f:
+        f.write(img_data)
+    item["cover"] = img_name
+
+    if "シリーズ" in meta:
+        item["series"]["name"] = meta["シリーズ"]
+        series_index = list(meta.keys()).index("シリーズ")
+        return soup.select(".categoryValue")[series_index].select_one("a").attrs["href"]
+
+def _read_series(item, driver):
+    # 筛选小说
+    # 获取标题/发售日
+    # 计算位次
+    ...
+
 def save_info(todo):
     with open(info_path, mode="w", encoding="utf-8") as w:
         json.dump(todo, w, ensure_ascii=False, indent=4)
@@ -156,61 +211,24 @@ def fill_info(todo):
             if BRANDS["rakuten"] not in item["link"]:
                 del todo[index]
                 continue
+
             time.sleep(2)
             driver.get(item["link"][BRANDS["rakuten"]])
-            html = driver.page_source
-            soup = BeautifulSoup(html, "html.parser")
-
-            # get meta info
-            meta = {
-                item.select_one("span.category").text.strip():
-                item.select_one("span.categoryValue").text.strip()
-                for item in soup.select("li.productInfo")
-            }
-
-            author, illust = _split(meta.get("著者／編集", ""))
-            price = round(int(soup.select_one("span.price")["content"]) * 10 / 11)
-
-            item["info"]["author"] = author
-            item["info"]["illust"] = illust
-            item["info"]["price"] = str(price)
-            item["info"]["pages"] = meta.get("ページ数", "").strip("p")
-            item["info"]["isbn"] = meta.get("ISBN", "")
-
-            # get first desc from jpro / book database
-            desc = {
-                item.text.strip(): item.find_next_sibling().text.strip()
-                for item in soup.select("div.saleDesc h3")
-            }
-            if len(desc) > 0:
-                item["desc"] = list(desc.values())[0]
-
-            # download image of cover
-            img_element = soup.select("div#imageSliderWrap img")[0]
-            img_url = "https:" + img_element.attrs["src"].split("?")[0]
-            img_name = os.path.basename(urlparse(img_url).path)
-
-            session = requests.Session()
-            session.headers["User-Agent"] = user_agent
-            for cookie in driver.get_cookies():
-                session.cookies.set(cookie["name"], cookie["value"])
-
-            response = session.get(img_url)
-            img_data, img_name = _convert(response.content, img_name)
-            with open(os.path.join(imgs_path, img_name), "wb") as f:
-                f.write(img_data)
-            item["cover"] = img_name
+            series_url = _read_one(item, driver)
 
             # process series
-            time.sleep(4)
+            if series_url:
+                time.sleep(2)
+                driver.get(series_url)
+                _read_series(item, driver)
 
             item["stage"] = 1
             save_info(todo)
 
         if item["stage"] == 1:
             response = search(title)
-            item["series"] = _filter(title, response, series=True)
-            item["search"] = _filter(title, response, series=False)
+            item["search"]["series"] = _filter(title, response, series=True)
+            item["search"]["single"] = _filter(title, response, series=False)
 
             item["stage"] = 2
             save_info(todo)
