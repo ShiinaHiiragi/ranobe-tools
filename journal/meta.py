@@ -11,6 +11,7 @@ import dotenv
 import requests
 
 from urllib.parse import urlparse
+from tqdm import tqdm
 from PIL import Image
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -217,6 +218,8 @@ def init_info():
 
 def fill_info(driver, todo):
     index = 0
+    pbar = tqdm(total=len(todo))
+
     while True:
         if index >= len(todo):
             break
@@ -227,16 +230,17 @@ def fill_info(driver, todo):
         if item["stage"] == 0:
             if BRANDS["rakuten"] not in item["link"]:
                 del todo[index]
+                pbar.update(1)
                 continue
 
             driver.get(item["link"][BRANDS["rakuten"]])
-            time.sleep(4)
+            time.sleep(6)
             series_url = _read_one(item, driver)
 
             # process series
             if series_url:
                 driver.get(series_url)
-                time.sleep(4)
+                time.sleep(6)
                 _read_series(item, driver)
 
             item["stage"] = 1
@@ -244,7 +248,7 @@ def fill_info(driver, todo):
 
         if item["stage"] == 1:
             response = search(title)
-            time.sleep(2)
+            time.sleep(4)
             item["search"]["series"] = _filter(title, response, series=True)
             item["search"]["single"] = _filter(title, response, series=False)
 
@@ -252,6 +256,7 @@ def fill_info(driver, todo):
             save_info(todo)
 
         index += 1
+        pbar.update(1)
 
 if __name__ == "__main__":
     driver = webdriver.Chrome()
