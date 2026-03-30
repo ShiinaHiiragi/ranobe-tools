@@ -70,6 +70,7 @@ def _entry(item):
         "submit": "提交"
     }
 
+    print(f"『{item['title']}』")
     print(meta)
     input("press enter to continue...")
 
@@ -79,15 +80,23 @@ def _entry(item):
         data=data
     )
 
-    return re.search(r'subject/(\d+)', response.url)[1]
+    time.sleep(8)
+    return re.search(r'/subject/(\d+)', response.url)[1]
 
 def _cover(item, sid):
     image_path = os.path.join(imgs_path, item["cover"])
     upload_url = f"https://bgm.tv/subject/{sid}/upload_img"
 
-    response = requests.get(upload_url, headers={"User-Agent": user_agent})
+    response = requests.get(upload_url, headers={
+        "Cookie": session_cookie,
+        "Origin": "https://bgm.tv",
+        "Referer": f"https://bgm.tv/subject/{sid}",
+        "User-Agent": user_agent
+    })
+
     response.encoding = "utf-8"
     soup = BeautifulSoup(response.text, "html.parser")
+    time.sleep(4)
 
     if len(soup.select(".photoList li")) > 0:
         return
@@ -107,7 +116,10 @@ def _cover(item, sid):
             headers=headers
         )
 
-        assert response.status_code == 200
+        response.encoding = "utf-8"
+        soup = BeautifulSoup(response.text, "html.parser")
+        assert len(soup.select(".photoList li")) > 0
+        time.sleep(8)
 
 def submit_info(todo):
     while True:
@@ -115,12 +127,14 @@ def submit_info(todo):
             return
         item = todo[0]
 
-        sid = _entry(item)
-        _cover(item, sid)
+        if "subject" not in item:
+            sid = _entry(item)
+            item["subject"] = sid
+            save_info(todo)
 
+        _cover(item, item["subject"])
         del todo[0]
         save_info(todo)
-        time.sleep(10)
 
 if __name__ == "__main__":
     with open(info_path, mode="r", encoding="utf-8") as r:
