@@ -80,8 +80,10 @@ def _entry(item):
         data=data
     )
 
+    sid = re.search(r'/subject/(\d+)', response.url)[1]
+    print(f"entry created as {response.url}")
     time.sleep(8)
-    return re.search(r'/subject/(\d+)', response.url)[1]
+    return sid
 
 def _cover(item, sid):
     image_path = os.path.join(imgs_path, item["cover"])
@@ -119,6 +121,7 @@ def _cover(item, sid):
         response.encoding = "utf-8"
         soup = BeautifulSoup(response.text, "html.parser")
         assert len(soup.select(".photoList li")) > 0
+        print(f"cover {item['cover']} uploaded")
         time.sleep(8)
 
 def submit_info(todo):
