@@ -31,9 +31,9 @@ always_update = args.update
 last_post = args.post
 
 dotenv.load_dotenv(os.path.join(root_path, ".env"))
-access_token = os.environ["ACCESS_TOKEN"]
-user_id = os.environ["USER_ID"]
-user_agent = os.environ["USER_AGENT"]
+access_token = os.environ.get("ACCESS_TOKEN", "")
+user_id = os.environ.get("USER_ID", "")
+user_agent = os.environ.get("USER_AGENT", "")
 
 now = datetime.datetime.now()
 limit = 12 * 60 * 60 * 1000

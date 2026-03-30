@@ -41,7 +41,7 @@ imgs_path = os.path.join(data_path, f"images")
 os.makedirs(imgs_path, exist_ok=True)
 
 dotenv.load_dotenv(os.path.join(root_path, ".env"))
-user_agent = os.environ["USER_AGENT"]
+user_agent = os.environ.get("USER_AGENT", "")
 
 def _filter(title, response, series):
     return [{

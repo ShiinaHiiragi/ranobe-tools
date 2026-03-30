@@ -300,7 +300,8 @@ python single/sakura.py
 
 - `journal/init.py`：收集当月轻小说新刊情报
 - `journal/post.py`：将上述情报整理为可在 Bangumi 发布的日志
-- `journal/meta.py`：[WIP]
+- `journal/meta.py`：在 Rakuten 收集并整理新刊相关信息，生成关联报表
+- `journal/spawn.py`：自动发布新刊信息
 
 ### 配置
 
@@ -327,11 +328,22 @@ python single/sakura.py
     - `USER_ID`：用户名
     - `USER_AGENT`：浏览器 UA
 
-5. `journal/meta.py` 的环境参数：在上述 `.env` 文件中填入如下环境变量
-    - `FORM_HASH`
-    - `SESSION_COOKIE`
+5. `journal/meta.py` 的命令行参数
+    - `-y` / `--year`：目标年份，默认为当前年份
+    - `-m` / `--month`：目标月份，默认为当前月份
+    - `-d` / `--data`：输出数据目录，默认为仓库根目录的 `data/`
 
-    为防止无关人员恶意编辑 Bangumi 词条，这里不提供变量获取方式
+6. `journal/meta.py` 的环境参数：在上述 `.env` 文件中填入如下环境变量
+    - `ACCESS_TOKEN`：从 https://next.bgm.tv/demo/access-token 获取
+    - `USER_ID`：用户名
+    - `USER_AGENT`：浏览器 UA
+
+7. `journal/spawn.py` 的命令行参数
+    - `-y` / `--year`：目标年份，默认为当前年份
+    - `-m` / `--month`：目标月份，默认为当前月份
+    - `-d` / `--data`：输出数据目录，默认为仓库根目录的 `data/`
+
+8. `journal/spawn.py` 的环境参数：为防止恶意编辑，此处不提供变量获取方式
 
 ### 用法示例
 
@@ -339,4 +351,5 @@ python single/sakura.py
 python journal/init.py
 python journal/post.py
 python journal/meta.py
+python journal/spawn.py
 ```
