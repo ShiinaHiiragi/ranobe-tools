@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import io
 import json
 import time
@@ -101,6 +102,10 @@ def _split(cc_str):
             illust.append(cc_item[:-3])
     return author, illust
 
+def _parse(date_str):
+    if (m := re.search(r'(\d{4})年(\d{1,2})月(\d{1,2})日', date_str)):
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+
 def _convert(img_data, img_name):
     img = Image.open(io.BytesIO(img_data))
     if img.format != "JPEG":
@@ -140,29 +145,50 @@ def _read_one(item, driver):
     # download image of cover
     img_element = soup.select("div#imageSliderWrap img")[0]
     img_url = "https:" + img_element.attrs["src"].split("?")[0]
+
     img_name = os.path.basename(urlparse(img_url).path)
-
-    session = requests.Session()
-    session.headers["User-Agent"] = user_agent
-    for cookie in driver.get_cookies():
-        session.cookies.set(cookie["name"], cookie["value"])
-
-    response = session.get(img_url)
-    img_data, img_name = _convert(response.content, img_name)
-    with open(os.path.join(imgs_path, img_name), "wb") as f:
-        f.write(img_data)
+    img_path = os.path.join(imgs_path, img_name)
     item["cover"] = img_name
+
+    if not os.path.exists(img_path):
+        session = requests.Session()
+        session.headers["User-Agent"] = user_agent
+        for cookie in driver.get_cookies():
+            session.cookies.set(cookie["name"], cookie["value"])
+
+        response = session.get(img_url)
+        img_data, img_name = _convert(response.content, img_name)
+        with open(img_path, "wb") as f:
+            f.write(img_data)
 
     if "シリーズ" in meta:
         item["series"]["name"] = meta["シリーズ"]
-        series_index = list(meta.keys()).index("シリーズ")
-        return soup.select(".categoryValue")[series_index].select_one("a").attrs["href"]
+        series_links = [
+            item.select_one("a") for item in soup.select("li.productInfo")
+            if item.select_one("span.category").text.strip() == "シリーズ"
+        ]
+        return __import__("html").unescape(series_links[0]["href"])
+
+    else:
+        item["series"] = None
 
 def _read_series(item, driver):
-    # 筛选小说
-    # 获取标题/发售日
-    # 计算位次
-    ...
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+
+    volumes = [{
+        "title": item.select_one(".info__title").text,
+        "date": _parse(item.select_one(".info__date").text)
+    } for item in soup.select(".list__info ")]
+
+    is_desc = "新" in soup.select_one(".sort__order__list > .active").text
+    volumes = list(reversed(volumes)) if is_desc else volumes
+
+    item["series"]["order"] = next(
+        i for i, v in enumerate(volumes)
+        if v["date"] == item["info"]["date"]
+    )
+    item["series"]["abstract"] = volumes
 
 def save_info(todo):
     with open(info_path, mode="w", encoding="utf-8") as w:
@@ -218,7 +244,7 @@ def fill_info(todo):
 
             # process series
             if series_url:
-                time.sleep(2)
+                time.sleep(4)
                 driver.get(series_url)
                 _read_series(item, driver)
 
