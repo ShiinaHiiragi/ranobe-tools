@@ -130,7 +130,7 @@ def _read_one(item, driver):
 
     item["info"]["author"] = author
     item["info"]["illust"] = illust
-    item["info"]["price"] = str(price)
+    item["info"]["price"] = f"￥{price}"
     item["info"]["pages"] = meta.get("ページ数", "").strip("p")
     item["info"]["isbn"] = meta.get("ISBN", "")
 
