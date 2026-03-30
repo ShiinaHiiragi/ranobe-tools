@@ -215,7 +215,7 @@ def init_info():
         save_info(todo)
         return todo
 
-def fill_info(todo):
+def fill_info(driver, todo):
     index = 0
     while True:
         if index >= len(todo):
@@ -225,27 +225,18 @@ def fill_info(todo):
         title = item["title"]
 
         if item["stage"] == 0:
-            options = webdriver.ChromeOptions()
-            options.add_experimental_option("prefs", {
-                "download.default_directory": imgs_path,
-                "download.prompt_for_download": False,
-                "download.directory_upgrade": True,
-                "safebrowsing.enabled": True
-            })
-            driver = webdriver.Chrome(options=options)
-
             if BRANDS["rakuten"] not in item["link"]:
                 del todo[index]
                 continue
 
-            time.sleep(2)
             driver.get(item["link"][BRANDS["rakuten"]])
+            time.sleep(4)
             series_url = _read_one(item, driver)
 
             # process series
             if series_url:
-                time.sleep(4)
                 driver.get(series_url)
+                time.sleep(4)
                 _read_series(item, driver)
 
             item["stage"] = 1
@@ -253,6 +244,7 @@ def fill_info(todo):
 
         if item["stage"] == 1:
             response = search(title)
+            time.sleep(2)
             item["search"]["series"] = _filter(title, response, series=True)
             item["search"]["single"] = _filter(title, response, series=False)
 
@@ -262,5 +254,8 @@ def fill_info(todo):
         index += 1
 
 if __name__ == "__main__":
+    driver = webdriver.Chrome()
+    time.sleep(2)
+
     todo = init_info()
-    fill_info(todo)
+    fill_info(driver, todo)
