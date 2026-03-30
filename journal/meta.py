@@ -9,12 +9,15 @@ import argparse
 
 import dotenv
 import requests
-
 from urllib.parse import urlparse
+
 from tqdm import tqdm
 from PIL import Image
 from bs4 import BeautifulSoup
+
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 root_path = os.path.dirname(os.path.dirname(__file__))
 sys.dont_write_bytecode = True
@@ -43,6 +46,7 @@ os.makedirs(imgs_path, exist_ok=True)
 
 dotenv.load_dotenv(os.path.join(root_path, ".env"))
 user_agent = os.environ.get("USER_AGENT", "")
+httpx_proxy = os.environ.get("HTTPX_PROXY", "")
 
 def _filter(title, response, series):
     return [{
@@ -114,6 +118,16 @@ def _convert(img_data, img_name):
         img.convert("RGB").save((buf := io.BytesIO()), format="JPEG")
         img_data = buf.getvalue()
     return img_data, img_name
+
+def _popup(driver):
+    try:
+        popup = driver.find_element(By.CSS_SELECTOR, "div[id^=zigzag]")
+        sroot = popup.shadow_root
+        sroot.find_element(By.CSS_SELECTOR, "button[id$=close]").click()
+        time.sleep(1)
+
+    except NoSuchElementException:
+        ...
 
 def _read_one(item, driver):
     html = driver.page_source
@@ -239,6 +253,7 @@ def fill_info(driver, todo):
 
             # process series
             if series_url:
+                _popup(driver)
                 driver.get(series_url)
                 time.sleep(6)
                 _read_series(item, driver)
@@ -259,7 +274,10 @@ def fill_info(driver, todo):
         pbar.update(1)
 
 if __name__ == "__main__":
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    if httpx_proxy:
+        options.add_argument(f"--proxy-server={httpx_proxy}")
+    driver = webdriver.Chrome(options=options)
     time.sleep(2)
 
     todo = init_info()
