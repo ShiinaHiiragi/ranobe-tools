@@ -310,29 +310,16 @@ python single/sakura.py
     pip install requests python-dotenv beautifulsoup4 rapidfuzz
     ```
 
-2. `journal/init.py` 的命令行参数
+2. 通用命令行参数
     - `-y` / `--year`：目标年份，默认为当前年份
     - `-m` / `--month`：目标月份，默认为当前月份
     - `-d` / `--data`：输出数据目录，默认为仓库根目录的 `data/`
 
-3. `journal/post.py` 的命令行参数
-    - `-y` / `--year`：目标年份，默认为当前年份
-    - `-m` / `--month`：目标月份，默认为当前月份
-    - `-d` / `--data`：输出数据目录，默认为仓库根目录的 `data/`
-    - `-p` / `--post`：上个月的日志编号，验证通过后加入当期日志链接
+3. `journal/post.py` 附加命令行参数
+    - `-p` / `--post`：前一月的日志编号，验证通过后加入当期日志链接
     - `-u` / `--update`：是否强制更新，当所有条目都被搜索过时，通过此项重新搜索缺失条目
 
-4. `journal/post.py` 的环境参数：在项目根目录新建 `.env` 文件，填入如下环境变量
-    - `ACCESS_TOKEN`：从 https://next.bgm.tv/demo/access-token 获取
-    - `USER_ID`：用户名
-    - `USER_AGENT`：浏览器 UA
-
-5. `journal/meta.py` 的命令行参数
-    - `-y` / `--year`：目标年份，默认为当前年份
-    - `-m` / `--month`：目标月份，默认为当前月份
-    - `-d` / `--data`：输出数据目录，默认为仓库根目录的 `data/`
-
-6. `journal/meta.py` 的环境参数：在上述 `.env` 文件中填入如下环境变量
+4. 通用环境参数：在项目根目录新建 `.env` 文件，填入如下环境变量
     - `ACCESS_TOKEN`：从 https://next.bgm.tv/demo/access-token 获取
     - `USER_ID`：用户名
     - `USER_AGENT`：浏览器 UA
