@@ -46,6 +46,7 @@ month_str = f"{now_year}{now_month:02d}"
 data_path = args.data if args.data else os.path.join(root_path, f"data/{month_str}")
 json_path = os.path.join(data_path, f"data.json")
 text_path = os.path.join(data_path, f"post.txt")
+info_path = os.path.join(data_path, f"info.json")
 
 def norm(text: str) -> str:
     text = unicodedata.normalize("NFKC", text)
@@ -91,6 +92,35 @@ def search(title: str, **kwargs) -> dict:
             "filter": {"type": [1], **kwargs}
         }
     ).json()
+
+def init(todo, entry, label, date):
+    todo.append({
+        "title": entry["title"],
+        "page": None,
+        "link": entry["link"],
+        "info": {
+            "author": [],
+            "illust": [],
+            "publisher": label["pub"],
+            "label": label["jp"],
+            "price": "",
+            "date": date,
+            "pages": "",
+            "isbn": ""
+        },
+        "desc": "",
+        "cover": "",
+        "series": {
+            "name": "",
+            "order": 0,
+            "abstract": []
+        },
+        "search": {
+            "single": [],
+            "series": []
+        },
+        "stage": 0
+    })
 
 if __name__ == "__main__":
     with open(json_path, mode="r", encoding="utf-8") as r:
@@ -141,9 +171,10 @@ if __name__ == "__main__":
         time.sleep(2.5)
 
     lines.append(f"""无法找到对应 Bangumi 链接的可能原因：
-1. 截至搜索时（{now.strftime('%Y/%#m/%#d %#H:%M')}），条目尚未创建
+1. 条目从属于某系列，且截至搜索时（{now.strftime('%Y/%#m/%#d %#H:%M')}）条目尚未创建
 2. 条目记载发售时间不一致，或者列出的是已发售作品的特装版本
 3. 搜索结果与标题的顺序相似度、乱序相似度及部分相似度均低于 0.9
+4. 搜索 API 抽风 (bgm38)
 """)
 
     for date in books["items"]:
@@ -195,5 +226,15 @@ if __name__ == "__main__":
     lines.append(f"收录书系：{'、'.join([LABELS[item]['zh'] for item in LABELS])}")
     lines.append(f"数据来源：[url=https://lnovel.jp/]ライトノベル新刊・アニメの放送予定と原作情報まとめサイト[/url]")
 
-    with open(text_path, mode="w", encoding="utf-8") as w:
-        w.write("\n".join(lines))
+    if not os.path.exists(info_path):
+        todo = []
+        for date in books["items"]:
+            for label in books["items"][date]:
+                for book in books["items"][date][label]:
+                    assert book["page"] is not None
+                    if book["page"] == "":
+                        date_str = f"{now_year}-{now_month:02d}-{int(date):02d}"
+                        init(todo, book, LABELS[label], date_str)
+
+        with open(info_path, mode="w", encoding="utf-8") as w:
+            json.dump(todo, w, ensure_ascii=False, indent=4)

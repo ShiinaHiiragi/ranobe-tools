@@ -23,7 +23,7 @@ root_path = os.path.dirname(os.path.dirname(__file__))
 sys.dont_write_bytecode = True
 sys.path.append(root_path)
 from journal.post import sim, search
-from utils.const import LABELS, BRANDS
+from utils.const import BRANDS
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-y", "--year", type=int, default=None)
@@ -58,35 +58,6 @@ def _filter(title, response, series):
             and entry["series"] is series \
             and sim(title, entry["name"]) >= 0.5
     ]
-
-def _init(todo, entry, label, date):
-    todo.append({
-        "title": entry["title"],
-        "page": None,
-        "link": entry["link"],
-        "info": {
-            "author": [],
-            "illust": [],
-            "publisher": label["pub"],
-            "label": label["jp"],
-            "price": "",
-            "date": date,
-            "pages": "",
-            "isbn": ""
-        },
-        "desc": "",
-        "cover": "",
-        "series": {
-            "name": "",
-            "order": 0,
-            "abstract": []
-        },
-        "search": {
-            "single": [],
-            "series": []
-        },
-        "stage": 0
-    })
 
 def _split(cc_str):
     # content creators (cc_str) example:
@@ -209,27 +180,6 @@ def save_info(todo):
     with open(info_path, mode="w", encoding="utf-8") as w:
         json.dump(todo, w, ensure_ascii=False, indent=4)
 
-def init_info():
-    if os.path.exists(info_path):
-        with open(info_path, mode="r", encoding="utf-8") as r:
-            return json.load(r)
-
-    else:
-        todo = []
-        with open(json_path, mode="r", encoding="utf-8") as r:
-            books = json.load(r)
-
-        for date in books["items"]:
-            for label in books["items"][date]:
-                for book in books["items"][date][label]:
-                    assert book["page"] is not None
-                    if book["page"] == "":
-                        date_str = f"{now_year}-{now_month:02d}-{int(date):02d}"
-                        _init(todo, book, LABELS[label], date_str)
-
-        save_info(todo)
-        return todo
-
 def fill_info(driver, todo):
     index = 0
     pbar = tqdm(total=len(todo))
@@ -280,5 +230,6 @@ if __name__ == "__main__":
     driver = webdriver.Chrome(options=options)
     time.sleep(2)
 
-    todo = init_info()
+    with open(info_path, mode="r", encoding="utf-8") as r:
+        todo = json.load(r)
     fill_info(driver, todo)
