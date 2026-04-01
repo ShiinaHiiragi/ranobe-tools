@@ -86,6 +86,9 @@ def _entry(item):
     return sid
 
 def _cover(item, sid):
+    if item["cover"] is None:
+        return
+
     image_path = os.path.join(imgs_path, item["cover"])
     upload_url = f"https://bgm.tv/subject/{sid}/upload_img"
 

@@ -124,7 +124,7 @@ def _popup(driver):
         popup = driver.find_element(By.CSS_SELECTOR, "div[id^=zigzag]")
         sroot = popup.shadow_root
         sroot.find_element(By.CSS_SELECTOR, "button[id$=close]").click()
-        time.sleep(1)
+        time.sleep(2)
 
     except NoSuchElementException:
         ...
@@ -163,9 +163,9 @@ def _read_one(item, driver):
 
     img_name = os.path.basename(urlparse(img_url).path)
     img_path = os.path.join(imgs_path, img_name)
-    item["cover"] = img_name
+    item["cover"] = None if img_url.endswith(".gif") else img_name
 
-    if not os.path.exists(img_path):
+    if item["cover"] is not None and not os.path.exists(img_path):
         session = requests.Session()
         session.headers["User-Agent"] = user_agent
         for cookie in driver.get_cookies():
@@ -248,14 +248,14 @@ def fill_info(driver, todo):
                 continue
 
             driver.get(item["link"][BRANDS["rakuten"]])
-            time.sleep(6)
+            time.sleep(8)
             series_url = _read_one(item, driver)
 
             # process series
             if series_url:
                 _popup(driver)
                 driver.get(series_url)
-                time.sleep(6)
+                time.sleep(8)
                 _read_series(item, driver)
 
             item["stage"] = 1
