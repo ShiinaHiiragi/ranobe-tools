@@ -90,6 +90,12 @@ def _convert(img_data, img_name):
         img_data = buf.getvalue()
     return img_data, img_name
 
+def _half(name):
+    return name.translate(str.maketrans(                                                                               
+        '　！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴ   ＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～',
+        ' !"#$%&\'()*+,-.//0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
+    ))
+
 def _popup(driver):
     try:
         popup = driver.find_element(By.CSS_SELECTOR, "div[id^=zigzag]")

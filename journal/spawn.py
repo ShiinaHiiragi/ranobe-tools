@@ -23,6 +23,7 @@ month_str = f"{now_year}{now_month:02d}"
 
 root_path = os.path.dirname(os.path.dirname(__file__))
 data_path = args.data if args.data else os.path.join(root_path, f"data/{month_str}")
+json_path = os.path.join(data_path, f"data.json")
 info_path = os.path.join(data_path, f"info.json")
 imgs_path = os.path.join(data_path, f"images")
 
@@ -38,6 +39,10 @@ def save_info(todo):
 def check_info(todo):
     for item in todo:
         assert item["stage"] == 2
+
+def save_data(books):
+    with open(json_path, mode="w", encoding="utf-8") as w:
+        json.dump(books, w, ensure_ascii=False, indent=4)
 
 def _entry(item):
     meta = f"""{{{{Infobox animanga/Novel
@@ -123,28 +128,59 @@ def _cover(item, sid):
 
         response.encoding = "utf-8"
         soup = BeautifulSoup(response.text, "html.parser")
-        assert len(soup.select(".photoList li")) > 0
+        assert len(soup.select(".photoList li")) > 0, item["cover"]
         print(f"cover {item['cover']} uploaded")
         time.sleep(8)
 
-def submit_info(todo):
-    while True:
-        if len(todo) == 0:
-            return
-        item = todo[0]
+def _supply(books, item):
+    if books["logs"][-1]["action"] != "newly-append":
+        books["logs"].append({
+            "action": "newly-append",
+            "timestamp": int(now.timestamp() * 1000),
+            "details": {
+                "increment": 0
+            }
+        })
 
-        if "subject" not in item:
+    for date in books["items"]:
+        for label in books["items"][date]:
+            for book in books["items"][date][label]:
+                if book["title"] == item["title"] and book["page"] == "":
+                    book["page"] = f"https://bgm.tv/subject/{item['feedback']['subject']}"
+                    book["new"] = True
+                    books["logs"][-1]["details"]["increment"] += 1
+                    return
+
+def submit_info(todo, books):
+    index = 0
+    while True:
+        if index >= len(todo):
+            return
+        item = todo[index]
+
+        if "feedback" not in item:
             sid = _entry(item)
-            item["subject"] = sid
+            item["feedback"] = {
+                "subject": sid,
+                "cover": False
+            }
             save_info(todo)
 
-        _cover(item, item["subject"])
-        del todo[0]
-        save_info(todo)
+        if not item["feedback"]["cover"]:
+            _cover(item, item["feedback"]["subject"])
+            item["feedback"]["cover"] = True
+            save_info(todo)
+
+        _supply(books, item)
+        save_data(books)
+        index += 1
 
 if __name__ == "__main__":
+    with open(json_path, mode="r", encoding="utf-8") as r:
+        books = json.load(r)
+
     with open(info_path, mode="r", encoding="utf-8") as r:
         todo = json.load(r)
 
     check_info(todo)
-    submit_info(todo)
+    submit_info(todo, books)

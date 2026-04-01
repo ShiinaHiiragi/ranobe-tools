@@ -76,7 +76,8 @@ def add_book(date: int, label: str, title: str, url: str) -> None:
     books["items"][date][label].append({
         "title": title,
         "page": None,
-        "link": url
+        "link": url,
+        "new": False
     })
     books["logs"][-1]["details"]["total"] += 1
 
