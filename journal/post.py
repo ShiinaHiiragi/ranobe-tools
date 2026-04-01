@@ -119,7 +119,11 @@ def init(todo, entry, label, date):
             "single": [],
             "series": []
         },
-        "stage": 0
+        "stage": 0,
+        "feedback": {
+            "subject": None,
+            "cover": False
+        }
     })
 
 if __name__ == "__main__":

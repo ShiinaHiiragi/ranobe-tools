@@ -91,10 +91,16 @@ def _convert(img_data, img_name):
     return img_data, img_name
 
 def _half(name):
-    return name.translate(str.maketrans(                                                                               
-        '　！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴ   ＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～',
-        ' !"#$%&\'()*+,-.//0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
+    return name.translate(str.maketrans(
+        '　＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～',
+        ' "#$%&\'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
     ))
+
+def _format(item):
+    item["_title"] = item["title"]
+    item["title"] = _half(item["title"])
+    item["info"]["author"] = [_half(name) for name in item["info"]["author"]]
+    item["info"]["illust"] = [_half(name) for name in item["info"]["illust"]]
 
 def _popup(driver):
     try:
@@ -214,6 +220,7 @@ def fill_info(driver, todo):
                 time.sleep(8)
                 _read_series(item, driver)
 
+            _format(item)
             item["stage"] = 1
             save_info(todo)
 

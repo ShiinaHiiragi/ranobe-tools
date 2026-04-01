@@ -145,7 +145,7 @@ def _supply(books, item):
     for date in books["items"]:
         for label in books["items"][date]:
             for book in books["items"][date][label]:
-                if book["title"] == item["title"] and book["page"] == "":
+                if book["title"] == item["_title"] and book["page"] == "":
                     book["page"] = f"https://bgm.tv/subject/{item['feedback']['subject']}"
                     book["new"] = True
                     books["logs"][-1]["details"]["increment"] += 1
@@ -158,12 +158,9 @@ def submit_info(todo, books):
             return
         item = todo[index]
 
-        if "feedback" not in item:
+        if item["feedback"]["subject"] is None:
             sid = _entry(item)
-            item["feedback"] = {
-                "subject": sid,
-                "cover": False
-            }
+            item["feedback"]["subject"] = sid
             save_info(todo)
 
         if not item["feedback"]["cover"]:
