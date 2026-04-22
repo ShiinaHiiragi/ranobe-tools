@@ -110,6 +110,11 @@ CONFIG = {
         # switch to alt if img possess
         # type: bool
         "image.alt": False,
+        # whether to judge inline img
+        # seconds of delay might be caused
+        # invalid if image.alt enabled
+        # type: bool
+        "image.spec": True,
         # pixel count for possible inline
         # type: int
         "spec.pixel": 32768,
@@ -127,6 +132,7 @@ CONFIG = {
         # type: str
         "break.text": "",
         # convert md to html using pandoc
+        # seconds of delay might be caused
         # type: bool
         "out.html": True,
         # whether to preserve md file
@@ -202,6 +208,8 @@ CONFIG = {
             "image.width": "50%",
             # type: bool
             "image.alt": True,
+            # type: bool
+            "image.spec": False,
             # type: int
             "spec.pixel": 24576,
             # type: int
@@ -310,6 +318,7 @@ config_fade_top      = getitem(global_config,    "fade.top",            "-6px")
 config_show_image    = getitem(global_config,  "image.show",              True)
 config_image_width   = getitem(global_config, "image.width",              None)
 config_image_alt     = getitem(global_config,   "image.alt",             False)
+config_image_spec    = getitem(global_config,  "image.spec",              True)
 config_spec_pixel    = getitem(global_config,  "spec.pixel",             32768)
 config_spec_size     = getitem(global_config,   "spec.size",              8192)
 config_spec_hue      = getitem(global_config,    "spec.hue",               4.0)
@@ -375,6 +384,7 @@ if config_clear_path:
 os.makedirs(config_dst_dir_path, exist_ok=True)
 
 def image_info(raw_dir_path, image_suffix, config):
+    local_image_spec = getitem(config, "image.spec", config_image_spec)
     local_spec_pixel = getitem(config, "spec.pixel", config_spec_pixel)
     local_spec_size  = getitem(config,  "spec.size",  config_spec_size)
     local_spec_hue   = getitem(config,   "spec.hue",   config_spec_hue)
@@ -391,7 +401,7 @@ def image_info(raw_dir_path, image_suffix, config):
             "inline": False
         }
 
-        if os.path.exists(image_path):
+        if local_image_spec and os.path.exists(image_path):
             entry["size"] = os.path.getsize(image_path)
 
             with Image.open(image_path) as img:
@@ -508,6 +518,7 @@ def wrap_inline(page: List[BeautifulSoup], endpoint=(), map={}):
 
 def parse_inline(content: BeautifulSoup, config):
     local_image_width = getitem(config, "image.width", config_image_width)
+    local_image_alt   = getitem(config,   "image.alt",   config_image_alt)
     local_show_ruby   = getitem(config,   "ruby.show",   config_show_ruby)
     local_break_text  = getitem(config,  "break.text",  config_break_text)
 
@@ -536,7 +547,8 @@ def parse_inline(content: BeautifulSoup, config):
     # inline image such as gaiji
     elif content.name in image_tag:
         raw_src = extract_href(content)
-        parsed.append(tagged_image(
+        alt = getitem(content.attrs, "alt", "")
+        parsed.append(alt if local_image_alt and len(alt) > 0 else tagged_image(
             os.path.split(raw_src)[1],
             local_image_width,
             inline=True
