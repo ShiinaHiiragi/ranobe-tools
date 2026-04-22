@@ -104,11 +104,22 @@ CONFIG = {
         "image.show": True,
         # width attr of img tag
         # take no effects if not shown
+        # invalid for inline img
         # type: Optional[str]
         "image.width": None,
         # switch to alt if img possess
         # type: bool
         "image.alt": False,
+        # pixel count for possible inline
+        # type: int
+        "spec.pixel": 32768,
+        # img size for possible inline
+        # unit: bytes
+        # type: int
+        "spec.size": 8192,
+        # hue for possible inline
+        # type: float
+        "spec.hue": 4.0,
         # show ruby in output
         # type: bool
         "ruby.show": True,
@@ -191,6 +202,12 @@ CONFIG = {
             "image.width": "50%",
             # type: bool
             "image.alt": True,
+            # type: int
+            "spec.pixel": 24576,
+            # type: int
+            "spec.size": 5120,
+            # type: float
+            "spec.hue": 1.0,
             # type: bool
             "ruby.show": False,
             # type: str
@@ -293,6 +310,9 @@ config_fade_top      = getitem(global_config,    "fade.top",            "-6px")
 config_show_image    = getitem(global_config,  "image.show",              True)
 config_image_width   = getitem(global_config, "image.width",              None)
 config_image_alt     = getitem(global_config,   "image.alt",             False)
+config_spec_pixel    = getitem(global_config,  "spec.pixel",             32768)
+config_spec_size     = getitem(global_config,   "spec.size",              8192)
+config_spec_hue      = getitem(global_config,    "spec.hue",               4.0)
 config_show_ruby     = getitem(global_config,   "ruby.show",              True)
 config_break_text    = getitem(global_config,  "break.text",                "")
 config_output_html   = getitem(global_config,    "out.html",              True)
@@ -354,7 +374,10 @@ if config_clear_path:
         shutil.rmtree(config_dbg_dir_path)
 os.makedirs(config_dst_dir_path, exist_ok=True)
 
-def image_info(raw_dir_path, image_suffix):
+def image_info(raw_dir_path, image_suffix, config):
+    local_spec_pixel = getitem(config, "spec.pixel", config_spec_pixel)
+    local_spec_size  = getitem(config,  "spec.size",  config_spec_size)
+    local_spec_hue   = getitem(config,   "spec.hue",   config_spec_hue)
     image_map = {}
 
     for suffix in image_suffix:
@@ -387,9 +410,9 @@ def image_info(raw_dir_path, image_suffix):
 
         entry["inline"] = [
             entry["width"] is not None and entry["height"] is not None \
-                and entry["width"] * entry["height"] < 32768,
-            entry["size"] is not None and entry["size"] < 8192,
-            entry["color"] is not None and entry["color"] < 4,
+                and entry["width"] * entry["height"] < local_spec_pixel,
+            entry["size"] is not None and entry["size"] < local_spec_size,
+            entry["color"] is not None and entry["color"] < local_spec_hue,
         ].count(True) >= 2
         image_map[image_name] = entry
 
@@ -714,7 +737,7 @@ def main(temp_dir_path):
 
         # simple image (e.g. img version of '~' char)
         # will be viewed as inline in purity check
-        image_map = image_info(raw_dir_path, image_suffix)
+        image_map = image_info(raw_dir_path, image_suffix, filter_config)
 
         # start to parse xhtml contents
         # read and process xhtml text
