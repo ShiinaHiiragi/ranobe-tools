@@ -523,6 +523,7 @@ def parse_inline(content: BeautifulSoup, config):
     local_break_text  = getitem(config,  "break.text",  config_break_text)
 
     parsed: List[str] = []
+    images: List[str] = []
     if content.name == None:
         parsed.append(str(content).strip())
 
@@ -538,9 +539,13 @@ def parse_inline(content: BeautifulSoup, config):
             if local_show_ruby or sub_content.name not in rt_tag:
                 if not local_show_ruby and sub_content.name in rb_tag:
                     for sub_sub_content in sub_content.contents:
-                        parsed += parse_inline(sub_sub_content, config)
+                        pair = parse_inline(sub_sub_content, config)
+                        parsed += pair[0]
+                        images += pair[1]
                 else:
-                    parsed += parse_inline(sub_content, config)
+                    pair = parse_inline(sub_content, config)
+                    parsed += pair[0]
+                    images += pair[1]
         if local_show_ruby:
             parsed.append("</ruby>")
 
@@ -553,6 +558,7 @@ def parse_inline(content: BeautifulSoup, config):
             local_image_width,
             inline=True
         ))
+        images.append(raw_src)
 
     # for <a> or <span> and other tags
     # such as <em> ... </em> or <hr>
@@ -561,11 +567,13 @@ def parse_inline(content: BeautifulSoup, config):
         if not_link_span:
             parsed.append(f"<{content.name}>")
         for sub_content in content.contents:
-            parsed += parse_inline(sub_content, config)
+            pair = parse_inline(sub_content, config)
+            parsed += pair[0]
+            images += pair[1]
         if not_link_span and len(content.contents) > 0:
             parsed.append(f"</{content.name}>")
 
-    return parsed
+    return parsed, images
 
 # non-recursive functions
 def parse_endpoint(page: List[BeautifulSoup], config):
@@ -599,7 +607,9 @@ def parse_endpoint(page: List[BeautifulSoup], config):
                     images.append(raw_src)
 
         for content in endpoint.contents:
-            parsed[-1] += parse_inline(content, config)
+            pair = parse_inline(content, config)
+            parsed[-1] += pair[0]
+            images += pair[1]
 
         if local_clear_page and len(parsed[-1]) == 0:
             del parsed[-1]
