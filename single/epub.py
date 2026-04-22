@@ -547,34 +547,54 @@ def main(temp_dir_path):
         root_file_path = os.path.join(raw_dir_path, root_file_suffix)
         root_file_infix = os.path.split(root_file_suffix)[0]
 
-        content_manifest = BeautifulSoup(open(
+        content_opf = BeautifulSoup(open(
             root_file_path,
             mode="r",
             encoding="utf-8"
-        ).read(), "xml").manifest
+        ).read(), "xml")
+        content_manifest = content_opf.manifest
+        content_spine = content_opf.spine
 
         # extract text file sequence
         text_suffix = []
         image_suffix = []
+        manifest_map = {}
         for item in content_manifest:
             if item.name is None:
                 continue
+
+            item_id = item.attrs.get("id", "")
+            media_type = item.attrs.get("media-type", "")
+
             if any([
-                item.attrs["media-type"].startswith(mtype)
+                media_type.startswith(mtype)
                 for mtype in ("application/xhtml+xml", "text/html")
             ]) and (
                 "properties" not in item.attrs \
                     or item.attrs["properties"] != "nav"
             ):
-                text_suffix.append(os.path.normpath(os.path.join(
+                text_suffix.append(suffix := os.path.normpath(os.path.join(
                     root_file_infix,
                     item.attrs["href"]
                 )))
-            elif item.attrs["media-type"].startswith("image/"):
+                manifest_map[item_id] = suffix
+
+            elif media_type.startswith("image/"):
                 image_suffix.append(os.path.normpath(os.path.join(
                     root_file_infix,
                     item.attrs["href"]
                 )))
+
+        # extract sequence in spine
+        # fall back to manifest if missing
+        if content_spine is not None:
+            text_suffix = []
+            for itemref in content_spine:
+                if itemref.name is None:
+                    continue
+                idref = itemref.attrs.get("idref", "")
+                if idref in manifest_map:
+                    text_suffix.append(manifest_map[idref])
 
         # load local config
         filter_config = list(filter(
