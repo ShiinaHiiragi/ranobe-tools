@@ -14,7 +14,7 @@
 1. 安装所需包
 
     ```shell
-    pip install tqdm beautifulsoup4 markdown-it-py
+    pip install tqdm beautifulsoup4 markdown-it-py pillow numpy
     ```
 
 2. 配置分为 `global`（全局配置）和 `local`（局部配置）
