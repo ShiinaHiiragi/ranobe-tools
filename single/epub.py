@@ -8,9 +8,11 @@ import tempfile
 import subprocess
 import itertools
 
+import numpy
 from tqdm import tqdm
 from typing import Any, List, Dict, Tuple
 
+from PIL import Image
 from bs4 import BeautifulSoup
 from markdown_it import MarkdownIt
 
@@ -230,14 +232,33 @@ rf']')
 
 # util lambda functions
 getitem = lambda obj, item, default: obj[item] if item in obj else default
-extract_path = lambda path: os.path.split(path)[1].split("#")[0]
 is_pathlike = lambda obj: type(obj) in (str, bytes, os.PathLike)
-is_endpoint = lambda tag, endpoint=(): tag.name in (
-    *para_tag,
-    *header_tag,
-    *image_tag,
-    *endpoint
-)
+extract_path = lambda path: os.path.split(path)[1].split("#")[0]
+extract_href = lambda img: getitem(
+    img.attrs,
+    "src",
+    getitem(img.attrs, "xlink:href", "")
+).split("#")[0]
+
+def tagged_image(src, width, inline=False):
+    tag = f'<img src="assets/{src}"'
+    if inline:
+        tag += f' style="display: inline; height: 1em; width: auto; vertical-align: middle;"'
+    # only works for block-level img
+    elif width:
+        tag += f' width="{width}"'
+    return tag + f'/>'
+
+def is_endpoint(tag, endpoint=(), map={}):
+    if tag.name in image_tag:
+        raw_src = extract_href(tag)
+        return not map[os.path.split(raw_src)[1]]["inline"]
+
+    return tag.name in (
+        *para_tag,
+        *header_tag,
+        *endpoint
+    )
 
 markdown = MarkdownIt()
 def render_inline(text: str):
@@ -333,6 +354,47 @@ if config_clear_path:
         shutil.rmtree(config_dbg_dir_path)
 os.makedirs(config_dst_dir_path, exist_ok=True)
 
+def image_info(raw_dir_path, image_suffix):
+    image_map = {}
+
+    for suffix in image_suffix:
+        image_path = os.path.join(raw_dir_path, suffix)
+        image_name = os.path.split(suffix)[1]
+        entry = {
+            "width": None,
+            "height": None,
+            "size": None,
+            "color": None,
+            "inline": False
+        }
+
+        if os.path.exists(image_path):
+            entry["size"] = os.path.getsize(image_path)
+
+            with Image.open(image_path) as img:
+                entry["width"] = img.width
+                entry["height"] = img.height
+
+                rgb = img.convert("RGB")
+                red, green, blue = rgb.split()
+                colors = [
+                    numpy.array(red, dtype=float),
+                    numpy.array(green, dtype=float),
+                    numpy.array(blue, dtype=float)
+                ]
+                sat = numpy.max(colors, axis=0) - numpy.min(colors, axis=0)
+                entry["color"] = round(float(numpy.mean(sat)), 2)
+
+        entry["inline"] = [
+            entry["width"] is not None and entry["height"] is not None \
+                and entry["width"] * entry["height"] < 32768,
+            entry["size"] is not None and entry["size"] < 8192,
+            entry["color"] is not None and entry["color"] < 4,
+        ].count(True) >= 2
+        image_map[image_name] = entry
+
+    return image_map
+
 # recursive functions
 def cruise_source(base_dir_path, dir_infix=""):
     epub_list = []
@@ -356,15 +418,15 @@ def cruise_source(base_dir_path, dir_infix=""):
 
     return epub_list
 
-def check_purity(soup: BeautifulSoup, endpoint=()):
+def check_purity(soup: BeautifulSoup, endpoint=(), map={}):
     if soup.name == None:
         return True
 
     for soup_content in soup.contents:
-        if not check_purity(soup_content):
+        if not check_purity(soup_content, endpoint, map):
             return False
 
-    return not is_endpoint(soup, endpoint)
+    return not is_endpoint(soup, endpoint, map)
 
 def cruise_tag(soup: BeautifulSoup, tag_set: Tuple[str], terminal=True):
     result: List[BeautifulSoup] = []
@@ -381,7 +443,7 @@ def cruise_tag(soup: BeautifulSoup, tag_set: Tuple[str], terminal=True):
 
     return result
 
-def cruise_endpoint(soup: BeautifulSoup, endpoint=()):
+def cruise_endpoint(soup: BeautifulSoup, endpoint=(), map={}):
     result: List[BeautifulSoup] = []
     if soup.name == None:
         if len(soup.strip()) > 0:
@@ -389,21 +451,21 @@ def cruise_endpoint(soup: BeautifulSoup, endpoint=()):
         return result
 
     for soup_content in soup.contents:
-        if not check_purity(soup_content, endpoint):
+        if not check_purity(soup_content, endpoint, map):
             for soup_content in soup.contents:
-                result += cruise_endpoint(soup_content, endpoint=endpoint)
+                result += cruise_endpoint(soup_content, endpoint, map)
             return result
 
     result.append(soup)
     return result
 
-def wrap_inline(page: List[BeautifulSoup], endpoint=()):
+def wrap_inline(page: List[BeautifulSoup], endpoint=(), map={}):
     result: List[BeautifulSoup] = []
     last_inline = False
     new_element = None
 
     for soup in page:
-        if is_endpoint(soup, endpoint):
+        if is_endpoint(soup, endpoint, map):
             if last_inline:
                 result.append(new_element)
                 new_element = None
@@ -422,8 +484,9 @@ def wrap_inline(page: List[BeautifulSoup], endpoint=()):
     return result
 
 def parse_inline(content: BeautifulSoup, config):
-    local_show_ruby  = getitem(config,  "ruby.show",  config_show_ruby)
-    local_break_text = getitem(config, "break.text", config_break_text)
+    local_image_width = getitem(config, "image.width", config_image_width)
+    local_show_ruby   = getitem(config,   "ruby.show",   config_show_ruby)
+    local_break_text  = getitem(config,  "break.text",  config_break_text)
 
     parsed: List[str] = []
     if content.name == None:
@@ -446,6 +509,15 @@ def parse_inline(content: BeautifulSoup, config):
                     parsed += parse_inline(sub_content, config)
         if local_show_ruby:
             parsed.append("</ruby>")
+
+    # inline image such as gaiji
+    elif content.name in image_tag:
+        raw_src = extract_href(content)
+        parsed.append(tagged_image(
+            os.path.split(raw_src)[1],
+            local_image_width,
+            inline=True
+        ))
 
     # for <a> or <span> and other tags
     # such as <em> ... </em> or <hr>
@@ -477,27 +549,17 @@ def parse_endpoint(page: List[BeautifulSoup], config):
 
         elif endpoint.name in image_tag:
             if local_show_image:
-                raw_src = getitem(
-                    endpoint.attrs,
-                    "src",
-                    getitem(
-                        endpoint.attrs,
-                        "xlink:href",
-                        ""
-                    )
-                ).split("#")[0]
+                raw_src = extract_href(endpoint)
                 alt = getitem(endpoint.attrs, "alt", "")
-                tagged_image = lambda src, width: \
-                    f'<img src="assets/{src}"' \
-                        + (f' width="{width}"' if width else f'') \
-                        + f'/>'
+
                 # alt are often used for voiced kana such as 「あ゛」
                 if local_image_alt and len(alt) > 0:
                     parsed[-1].append(alt)
                 else:
                     parsed[-1].append(tagged_image(
                         os.path.split(raw_src)[1],
-                        local_image_width
+                        local_image_width,
+                        inline=False
                     ))
                     images.append(raw_src)
 
@@ -650,6 +712,10 @@ def main(temp_dir_path):
                     stderr=subprocess.STDOUT
                 )
 
+        # simple image (e.g. img version of '~' char)
+        # will be viewed as inline in purity check
+        image_map = image_info(raw_dir_path, image_suffix)
+
         # start to parse xhtml contents
         # read and process xhtml text
         xhtml_raw_text = [open(
@@ -696,8 +762,9 @@ def main(temp_dir_path):
 
         # parse and merge pages
         pages = [wrap_inline(
-            cruise_endpoint(soup, local_endpoint),
-            local_endpoint
+            cruise_endpoint(soup, local_endpoint, image_map),
+            local_endpoint,
+            image_map
         ) for soup in xhtml_soup]
 
         parsed_endpoint = [parse_endpoint(page, filter_config) for page in pages]
