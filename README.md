@@ -53,6 +53,10 @@
             | `image.show`  |   `bool`    | `True`     | 是否在输出文本中保留并显示图片                                                                         |
             | `image.width` | `str/None`  | `None`     | HTML / Markdown 中图片的展示宽度，设为 `None` 则保持原图尺寸                                           |
             | `image.alt`   |   `bool`    | `False`    | 当图片带有 `alt` 属性时，是否直接输出 `alt` 文本而不显示图片（常用于处理带浊点的假名外字，如「あ゛」） |
+            | `image.spec`  |   `bool`    | `True`     | 是否自动推断图片为行内元素，`image.alt` 开启时无效                                                     |
+            | `spec.pixel`  |    `int`    | `32768`    | 推断行内图片的像素面积上限（宽 × 高）                                                                  |
+            | `spec.size`   |    `int`    | `8192`     | 推断行内图片的文件大小上限（单位：字节）                                                               |
+            | `spec.hue`    |   `float`   | `4.0`      | 推断行内图片的色相均值上限；以上三个条件满足任意两个则推定为行内图片                                   |
             | `ruby.show`   |   `bool`    | `True`     | 是否保留显示 Ruby 振假名                                                                               |
 
         - 导出与 HTML 导航
