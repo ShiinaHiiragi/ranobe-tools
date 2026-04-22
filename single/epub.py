@@ -344,13 +344,16 @@ def cruise_source(base_dir_path, dir_infix=""):
                 base_dir_path,
                 dir_infix=os.path.join(dir_infix, unknown_name)
             )
+
         elif unknown_name.endswith(".epub"):
             epub_list.append({
                 "name": unknown_name,
                 "infix": dir_infix
             })
+
         elif unknown_name.endswith(".json") and config_local_auto:
             load_local_config(unknown_path)
+
     return epub_list
 
 def check_purity(soup: BeautifulSoup, endpoint=()):
@@ -360,6 +363,7 @@ def check_purity(soup: BeautifulSoup, endpoint=()):
     for soup_content in soup.contents:
         if not check_purity(soup_content):
             return False
+
     return not is_endpoint(soup, endpoint)
 
 def cruise_tag(soup: BeautifulSoup, tag_set: Tuple[str], terminal=True):
@@ -371,8 +375,10 @@ def cruise_tag(soup: BeautifulSoup, tag_set: Tuple[str], terminal=True):
         result.append(soup)
         if terminal:
             return result
+
     for soup_content in soup.contents:
         result += cruise_tag(soup_content, tag_set, terminal)
+
     return result
 
 def cruise_endpoint(soup: BeautifulSoup, endpoint=()):
@@ -395,6 +401,7 @@ def wrap_inline(page: List[BeautifulSoup], endpoint=()):
     result: List[BeautifulSoup] = []
     last_inline = False
     new_element = None
+
     for soup in page:
         if is_endpoint(soup, endpoint):
             if last_inline:
@@ -402,6 +409,7 @@ def wrap_inline(page: List[BeautifulSoup], endpoint=()):
                 new_element = None
             result.append(soup)
             last_inline = False
+
         else:
             if not last_inline:
                 new_element = BeautifulSoup("<p></p>", "html.parser").p
@@ -420,9 +428,11 @@ def parse_inline(content: BeautifulSoup, config):
     parsed: List[str] = []
     if content.name == None:
         parsed.append(str(content).strip())
+
     # potential replacement for <br>
     elif content.name in break_tag:
         parsed.append(local_break_text)
+
     # potential removal for <ruby>
     elif content.name in ruby_tag:
         if local_show_ruby:
@@ -436,6 +446,7 @@ def parse_inline(content: BeautifulSoup, config):
                     parsed += parse_inline(sub_content, config)
         if local_show_ruby:
             parsed.append("</ruby>")
+
     # for <a> or <span> and other tags
     # such as <em> ... </em> or <hr>
     else:
@@ -446,6 +457,7 @@ def parse_inline(content: BeautifulSoup, config):
             parsed += parse_inline(sub_content, config)
         if not_link_span and len(content.contents) > 0:
             parsed.append(f"</{content.name}>")
+
     return parsed
 
 # non-recursive functions
@@ -462,6 +474,7 @@ def parse_endpoint(page: List[BeautifulSoup], config):
         if endpoint.name in header_tag:
             repeat_times = int(endpoint.name[1:]) + 2
             parsed[-1].append("#" * repeat_times + " ")
+
         elif endpoint.name in image_tag:
             if local_show_image:
                 raw_src = getitem(
@@ -490,8 +503,10 @@ def parse_endpoint(page: List[BeautifulSoup], config):
 
         for content in endpoint.contents:
             parsed[-1] += parse_inline(content, config)
+
         if local_clear_page and len(parsed[-1]) == 0:
             del parsed[-1]
+
     return parsed, images
 
 # main function
@@ -725,6 +740,7 @@ def main(temp_dir_path):
 
             with open(dst_file_path, mode="r", encoding="utf-8") as readable:
                 text = readable.read()
+
             with open(dst_file_path, mode="w", encoding="utf-8") as writable:
                 vert_end = '\n' + HTML_VERTEND if local_output_vert else ''
                 writable.write(HTML_PREFIX.format(
@@ -732,6 +748,7 @@ def main(temp_dir_path):
                     TITLE=title
                 ))
                 writable.write(text)
+
                 if local_nav_link:
                     writable.write(HTML_NAVLINK.format(
                         PREV_LINK=("" if prev is None else f"{prev}.html"),
@@ -755,10 +772,12 @@ def main(temp_dir_path):
                 next_title = format_title(index + 1) if not last else None
                 md_file_path = os.path.join(md_dir_path, f"{raw_title}.md")
                 html_file_path = os.path.join(md_dir_path, f"{raw_title}.html")
+
                 with open(md_file_path, mode="w", encoding="utf-8") as writable:
                     if title != None:
                         writable.write(title + "\n\n")
                     writable.write(chapter_text + "\n")
+
                 if local_output_html:
                     convert_md(
                         md_file_path,
@@ -767,6 +786,7 @@ def main(temp_dir_path):
                         prev_title,
                         next_title
                     )
+
             else:
                 if title != None:
                     volume_text.append(title)
@@ -791,12 +811,14 @@ def main(temp_dir_path):
                     title=split_title
                 )
                 image_subset = image_subset.union(extracted_images_iter)
+
         # if local pages.split are not specified
         else:
             # equivalent to len(toc_indices[:-1])
             page_size = len(toc_indices) - 1
             local_fill_page = len(str(page_size - bool(not start_from_one))) \
                 if local_fill_page < 0 else local_fill_page
+
             for meta_index, index in enumerate(toc_indices[:-1]):
                 next_index = toc_indices[meta_index + 1]
                 extracted_images_iter = merge_chapter(
@@ -842,6 +864,7 @@ if __name__ == "__main__":
     if config_tmp_dir_path == None:
         with tempfile.TemporaryDirectory() as temp_dir_path:
             main(temp_dir_path)
+
     else:
         os.makedirs(config_tmp_dir_path, exist_ok=True)
         main(config_tmp_dir_path)
