@@ -108,11 +108,11 @@ CONFIG = {
         # type: Optional[str]
         "image.width": None,
         # switch to alt if img possess
+        # inline img only if image.spec enabled
         # type: bool
-        "image.alt": False,
+        "image.alt": True,
         # whether to judge inline img
         # seconds of delay might be caused
-        # invalid if image.alt enabled
         # type: bool
         "image.spec": True,
         # pixel count for possible inline
@@ -207,7 +207,7 @@ CONFIG = {
             # type: Optional[str]
             "image.width": "50%",
             # type: bool
-            "image.alt": True,
+            "image.alt": False,
             # type: bool
             "image.spec": False,
             # type: int
@@ -317,7 +317,7 @@ config_fade_size     = getitem(global_config,   "fade.size",          "0.84em")
 config_fade_top      = getitem(global_config,    "fade.top",            "-6px")
 config_show_image    = getitem(global_config,  "image.show",              True)
 config_image_width   = getitem(global_config, "image.width",              None)
-config_image_alt     = getitem(global_config,   "image.alt",             False)
+config_image_alt     = getitem(global_config,   "image.alt",              True)
 config_image_spec    = getitem(global_config,  "image.spec",              True)
 config_spec_pixel    = getitem(global_config,  "spec.pixel",             32768)
 config_spec_size     = getitem(global_config,   "spec.size",              8192)
@@ -580,6 +580,7 @@ def parse_endpoint(page: List[BeautifulSoup], config):
     local_show_image  = getitem(config,  "image.show",  config_show_image)
     local_image_width = getitem(config, "image.width", config_image_width)
     local_image_alt   = getitem(config,   "image.alt",   config_image_alt)
+    local_image_spec  = getitem(config,  "image.spec",  config_image_spec)
     local_clear_page  = getitem(config,  "page.clear",  config_clear_page)
 
     parsed: List[List[str]] = []
@@ -596,7 +597,7 @@ def parse_endpoint(page: List[BeautifulSoup], config):
                 alt = getitem(endpoint.attrs, "alt", "")
 
                 # alt are often used for voiced kana such as 「あ゛」
-                if local_image_alt and len(alt) > 0:
+                if local_image_alt and not local_image_spec and len(alt) > 0:
                     parsed[-1].append(alt)
                 else:
                     parsed[-1].append(tagged_image(
