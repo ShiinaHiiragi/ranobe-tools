@@ -839,7 +839,7 @@ def main(temp_dir_path):
                 f"font-size: {local_fade_size}; "
                 f"top: {local_fade_top}; "
                 f"\">{render_inline(line)}</p>"
-            ) if (local_fade_kana is True) == is_jp else line
+            ) if local_fade_kana == is_jp else line
         ) for line, is_jp in page] for page in marked_pages]
         merged_pages = ["\n\n".join(page) for page in faded_pages]
 
