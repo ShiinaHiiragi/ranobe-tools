@@ -553,12 +553,15 @@ def parse_inline(content: BeautifulSoup, config):
     elif content.name in image_tag:
         raw_src = extract_href(content)
         alt = getitem(content.attrs, "alt", "")
-        parsed.append(alt if local_image_alt and len(alt) > 0 else tagged_image(
-            os.path.split(raw_src)[1],
-            local_image_width,
-            inline=True
-        ))
-        images.append(raw_src)
+        if local_image_alt and len(alt) > 0:
+            parsed.append(alt)
+        else:
+            parsed.append(tagged_image(
+                os.path.split(raw_src)[1],
+                local_image_width,
+                inline=True
+            ))
+            images.append(raw_src)
 
     # for <a> or <span> and other tags
     # such as <em> ... </em> or <hr>
