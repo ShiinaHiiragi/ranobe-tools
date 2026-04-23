@@ -828,16 +828,19 @@ def main(temp_dir_path):
                 json.dump(parsed_pages, _writable, ensure_ascii=False, indent=4)
 
         lined_pages = [["".join(para) for para in page] for page in parsed_pages]
+        marked_pages = [[(
+            line,
+            re.search(kana, line) is not None
+        ) for line in page] for page in lined_pages]
+
         faded_pages = [[((
                 f"<p style=\""
                 f"opacity: {local_fade_opaque}; "
                 f"font-size: {local_fade_size}; "
                 f"top: {local_fade_top}; "
                 f"\">{render_inline(line)}</p>"
-            ) if (local_fade_kana is True and re.search(kana, line)) \
-                or (local_fade_kana is False and re.search(kana, line) is None
-            ) else line
-        ) for line in page] for page in lined_pages]
+            ) if (local_fade_kana is True) == is_jp else line
+        ) for line, is_jp in page] for page in marked_pages]
         merged_pages = ["\n\n".join(page) for page in faded_pages]
 
         image_subset = set()
