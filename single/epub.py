@@ -738,7 +738,10 @@ def main(temp_dir_path):
                 if idref in manifest_map:
                     text_suffix.append(manifest_map[idref])
 
-        print(f"  * Loading content.opf ✓ ({len(text_suffix)} xhtml, {len(image_suffix)} image)")
+        print(
+            f"  * Loading content.opf ✓",
+            f"({len(text_suffix)} xhtml, {len(image_suffix)} images)"
+        )
 
         # load local config
         filter_config = list(filter(
@@ -749,6 +752,7 @@ def main(temp_dir_path):
         # choose the first matched in response to overlapping
         if len(filter_config) > 0:
             filter_config = filter_config[0]
+            print("  * Loading local config for current target")
 
         # config extraction
         get_filter = lambda key, default : getitem(filter_config, key, default)
@@ -790,7 +794,7 @@ def main(temp_dir_path):
         )
 
         inline_count = len([... for val in image_map.values() if val["inline"]])
-        loading_done(image_caption, f"{inline_count}/{len(image_suffix)}")
+        loading_done(image_caption, f"{inline_count} inline images")
 
         # start to parse xhtml contents
         # read and process xhtml text
@@ -866,7 +870,10 @@ def main(temp_dir_path):
         if len(toc_indices) == 0:
             toc_indices = list(range(local_last_page))
 
-        print(f"  * Searching toc with {toc_method} ✓ ({len(toc_indices)} chapters)")
+        print(
+            f"  * Searching toc with {toc_method} ✓",
+            f"({len(toc_indices)} chapters)"
+        )
 
         start_from_one = True
         toc_indices.append(local_last_page)
