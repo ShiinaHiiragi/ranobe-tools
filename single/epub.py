@@ -809,9 +809,10 @@ def main(temp_dir_path):
             for raw_text in xhtml_raw_text
         ]
 
-        # find toc from nav document
         toc_indices = []
         toc_method = "TRIVIAL"
+
+        # find toc from nav document
         if nav_suffix is not None:
             nav_infix = os.path.split(nav_suffix)[0]
             nav_soup = BeautifulSoup(open(
@@ -869,6 +870,10 @@ def main(temp_dir_path):
         # fall back to trivial split
         if len(toc_indices) == 0:
             toc_indices = list(range(local_last_page))
+
+        if local_split_page is not None:
+            toc_method = "MANUAL"
+            toc_indices = local_split_page
 
         print(
             f"  * Searching toc with {toc_method} ✓",
@@ -1053,6 +1058,7 @@ def main(temp_dir_path):
                 writable.write("\n\n".join(volume_text) + "\n")
             if local_output_html:
                 convert_md(md_file_path, html_file_path, raw_filename)
+                loading_done(pandoc_caption, "1 file")
 
     if len(missing) > 0:
         print(f"  * Missing assets: {', '.join(missing)}")
