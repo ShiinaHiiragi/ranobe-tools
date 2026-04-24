@@ -256,7 +256,7 @@ kana = (rf'['
 rf']')
 
 # util lambda functions
-getitem = lambda obj, item, default: obj[item] if item in obj else default
+getitem = lambda obj, item, default=None: obj[item] if item in obj else default
 is_pathlike = lambda obj: type(obj) in (str, bytes, os.PathLike)
 extract_href = lambda img: getitem(
     img.attrs,
@@ -689,8 +689,8 @@ def main(temp_dir_path):
             if item.name is None:
                 continue
 
-            item_id = item.attrs.get("id", "")
-            media_type = item.attrs.get("media-type", "")
+            item_id = getitem(item.attrs, "id", "")
+            media_type = getitem(item.attrs, "media-type", "")
 
             if any([
                 media_type.startswith(mtype)
@@ -700,7 +700,7 @@ def main(temp_dir_path):
                     root_file_infix,
                     item.attrs["href"]
                 ))
-                if item.attrs.get("properties") == "nav":
+                if getitem(item.attrs, "properties", None) == "nav":
                     nav_suffix = suffix
                 else:
                     text_suffix.append(suffix)
@@ -719,7 +719,7 @@ def main(temp_dir_path):
             for itemref in content_spine:
                 if itemref.name is None:
                     continue
-                idref = itemref.attrs.get("idref", "")
+                idref = getitem(itemref.attrs, "idref", "")
                 if idref in manifest_map:
                     text_suffix.append(manifest_map[idref])
 
@@ -827,8 +827,10 @@ def main(temp_dir_path):
                 toc_infix = os.path.split(text_suffix[toc_index])[0]
                 try:
                     toc_indices = sorted(list(set([
-                        text_suffix.index(os.path.normpath(os.path.join(toc_infix, filename)))
-                        for filename in href_occurence[toc_index]
+                        text_suffix.index(os.path.normpath(os.path.join(
+                            toc_infix,
+                            filename
+                        ))) for filename in href_occurence[toc_index]
                     ])))
                 except ValueError:
                     print(f"[{raw_filename}]: Failed for toc search")
