@@ -258,7 +258,6 @@ rf']')
 # util lambda functions
 getitem = lambda obj, item, default: obj[item] if item in obj else default
 is_pathlike = lambda obj: type(obj) in (str, bytes, os.PathLike)
-extract_path = lambda path: os.path.split(path)[1].split("#")[0]
 extract_href = lambda img: getitem(
     img.attrs,
     "src",
@@ -781,7 +780,7 @@ def main(temp_dir_path):
         # find toc automatically
         href_occurence = [
             [
-                extract_path(soup.attrs["href"])
+                soup.attrs["href"].split("#")[0]
                 for soup in filter(lambda soup: "href" in soup.attrs, page)
             ]
             for page in [
