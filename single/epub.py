@@ -789,7 +789,7 @@ def main(temp_dir_path):
             handle_spin=lambda i: loading_spin(image_caption, i)
         )
 
-        inline_count = sum(... for val in image_map.values() if val["inline"])
+        inline_count = len([... for val in image_map.values() if val["inline"]])
         loading_done(image_caption, f"{inline_count}/{len(image_suffix)}")
 
         # start to parse xhtml contents
@@ -1048,7 +1048,7 @@ def main(temp_dir_path):
                 convert_md(md_file_path, html_file_path, raw_filename)
 
     if len(missing) > 0:
-        print(f"Missing assets: {', '.join(missing)}")
+        print(f"  * Missing assets: {', '.join(missing)}")
 
 # entrance point
 if __name__ == "__main__":
