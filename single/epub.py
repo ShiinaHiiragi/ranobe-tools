@@ -9,7 +9,6 @@ import subprocess
 import itertools
 
 import numpy
-from tqdm import tqdm
 from typing import Any, List, Dict, Tuple
 
 from PIL import Image
@@ -264,6 +263,18 @@ extract_href = lambda img: getitem(
     getitem(img.attrs, "xlink:href", "")
 ).split("#")[0]
 
+spinner = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+def loading_spin(text: str, index: int) -> None:
+    sys.stdout.write(f"\r{text} {spinner[index % len(spinner)]}")
+    sys.stdout.flush()
+
+def loading_done(text: str, addon: str = "") -> None:
+    addon = f" ({addon})" if len(addon) > 0 else ""
+    sys.stdout.write("\r" + " " * 80 + "\r")
+    sys.stdout.write(f"{text} ✓{addon}\n")
+    sys.stdout.flush()
+
 def tagged_image(src, width, inline=False):
     tag = f'<img src="assets/{src}"'
     if inline:
@@ -382,14 +393,16 @@ if config_clear_path:
         shutil.rmtree(config_dbg_dir_path)
 os.makedirs(config_dst_dir_path, exist_ok=True)
 
-def image_info(raw_dir_path, image_suffix, config):
+def image_info(raw_dir_path, image_suffix, config, handle_spin=None):
     local_image_spec = getitem(config, "image.spec", config_image_spec)
     local_spec_pixel = getitem(config, "spec.pixel", config_spec_pixel)
     local_spec_size  = getitem(config,  "spec.size",  config_spec_size)
     local_spec_hue   = getitem(config,   "spec.hue",   config_spec_hue)
     image_map = {}
 
-    for suffix in image_suffix:
+    for index, suffix in enumerate(image_suffix):
+        if handle_spin:
+            handle_spin(index)
         image_path = os.path.join(raw_dir_path, suffix)
         image_name = os.path.split(suffix)[1]
         entry = {
@@ -622,7 +635,8 @@ def parse_endpoint(page: List[BeautifulSoup], config):
 # main function
 def main(temp_dir_path):
     missing = []
-    for epub_info in tqdm(cruise_source(config_src_dir_path)):
+    epub_list = cruise_source(config_src_dir_path)
+    for epub_index, epub_info in enumerate(epub_list):
         epub_infix = epub_info["infix"]
         epub_filename = epub_info["name"]
 
@@ -630,6 +644,7 @@ def main(temp_dir_path):
         raw_filename = re.sub(r'\.epub$', r'', epub_filename)
         assert not raw_filename.endswith(" "), \
             "Trailing spaces detected before extension"
+        print(f"[{epub_index + 1}/{len(epub_list)}] {raw_filename}")
 
         md_filename = raw_filename + ".md"
         html_filename = raw_filename + ".html"
@@ -723,6 +738,8 @@ def main(temp_dir_path):
                 if idref in manifest_map:
                     text_suffix.append(manifest_map[idref])
 
+        print(f"  * Loading content.opf ✓ ({len(text_suffix)} xhtml, {len(image_suffix)} image)")
+
         # load local config
         filter_config = list(filter(
             lambda item: item["name"] == raw_filename,
@@ -764,7 +781,16 @@ def main(temp_dir_path):
 
         # simple image (e.g. img version of '~' char)
         # will be viewed as inline in purity check
-        image_map = image_info(raw_dir_path, image_suffix, filter_config)
+        image_caption = "  * Reading image info"
+        image_map = image_info(
+            raw_dir_path,
+            image_suffix,
+            filter_config,
+            handle_spin=lambda i: loading_spin(image_caption, i)
+        )
+
+        inline_count = sum(... for val in image_map.values() if val["inline"])
+        loading_done(image_caption, f"{inline_count}/{len(image_suffix)}")
 
         # start to parse xhtml contents
         # read and process xhtml text
@@ -781,6 +807,7 @@ def main(temp_dir_path):
 
         # find toc from nav document
         toc_indices = []
+        toc_method = "TRIVIAL"
         if nav_suffix is not None:
             nav_infix = os.path.split(nav_suffix)[0]
             nav_soup = BeautifulSoup(open(
@@ -805,8 +832,8 @@ def main(temp_dir_path):
                         for path in resolved
                         if path in text_suffix
                     ])))
-                except ValueError:
-                    print(f"[{raw_filename}]: Failed for nav search")
+                    toc_method = "NAV"
+                except ValueError: ...
 
         # fall back to heuristic search
         if len(toc_indices) == 0:
@@ -832,12 +859,14 @@ def main(temp_dir_path):
                             filename
                         ))) for filename in href_occurence[toc_index]
                     ])))
-                except ValueError:
-                    print(f"[{raw_filename}]: Failed for toc search")
+                    toc_method = "TOC"
+                except ValueError: ...
 
         # fall back to trivial split
         if len(toc_indices) == 0:
             toc_indices = list(range(local_last_page))
+
+        print(f"  * Searching toc with {toc_method} ✓ ({len(toc_indices)} chapters)")
 
         start_from_one = True
         toc_indices.append(local_last_page)
@@ -885,8 +914,12 @@ def main(temp_dir_path):
 
         image_subset = set()
         volume_text = []
+        pandoc_counter = [0]
+        pandoc_caption = "  * Converting markdown with pandoc"
 
         def convert_md(src_file_path, dst_file_path, title, prev=None, next=None):
+            loading_spin(pandoc_caption, pandoc_counter[0])
+            pandoc_counter[0] += 1
             subprocess.run([
                 "pandoc", src_file_path,
                 "-o", dst_file_path,
@@ -984,6 +1017,9 @@ def main(temp_dir_path):
                     meta_index + 1 == page_size
                 )
                 image_subset = image_subset.union(extracted_images_iter)
+
+        if local_output_html and pandoc_counter[0] > 0:
+            loading_done(pandoc_caption, f"{pandoc_counter[0]} files")
 
         if len(image_subset) > 0:
             assets_dir_path = os.path.join(md_dir_path, "assets")
