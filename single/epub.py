@@ -684,6 +684,7 @@ def main(temp_dir_path):
         text_suffix = []
         image_suffix = []
         manifest_map = {}
+        nav_suffix = None
         for item in content_manifest:
             if item.name is None:
                 continue
@@ -694,15 +695,16 @@ def main(temp_dir_path):
             if any([
                 media_type.startswith(mtype)
                 for mtype in ("application/xhtml+xml", "text/html")
-            ]) and (
-                "properties" not in item.attrs \
-                    or item.attrs["properties"] != "nav"
-            ):
-                text_suffix.append(suffix := os.path.normpath(os.path.join(
+            ]):
+                suffix = os.path.normpath(os.path.join(
                     root_file_infix,
                     item.attrs["href"]
-                )))
-                manifest_map[item_id] = suffix
+                ))
+                if item.attrs.get("properties") == "nav":
+                    nav_suffix = suffix
+                else:
+                    text_suffix.append(suffix)
+                    manifest_map[item_id] = suffix
 
             elif media_type.startswith("image/"):
                 image_suffix.append(os.path.normpath(os.path.join(
@@ -777,28 +779,61 @@ def main(temp_dir_path):
             for raw_text in xhtml_raw_text
         ]
 
-        # find toc automatically
-        href_occurence = [
-            [
-                soup.attrs["href"].split("#")[0]
-                for soup in filter(lambda soup: "href" in soup.attrs, page)
-            ]
-            for page in [
-                cruise_tag(soup, link_tag, False)
-                for soup in xhtml_soup
-            ]
-        ]
-        href_occurence_count = [len(item) for item in href_occurence]
-
+        # find toc from nav document
         toc_indices = []
-        if len(href_occurence_count) != 0:
-            toc_index = href_occurence_count.index(max(href_occurence_count))
-            toc_infix = os.path.split(text_suffix[toc_index])[0]
-            toc_indices = sorted(list(set([
-                text_suffix.index(os.path.normpath(os.path.join(toc_infix, filename)))
-                for filename in href_occurence[toc_index]
-            ])))
+        if nav_suffix is not None:
+            nav_infix = os.path.split(nav_suffix)[0]
+            nav_soup = BeautifulSoup(open(
+                os.path.join(raw_dir_path, nav_suffix),
+                mode="r",
+                encoding="utf-8"
+            ).read(), "html.parser")
 
+            if (toc_nav := nav_soup.find("nav", {"epub:type": "toc"})):
+                toc_hrefs = [
+                    a.attrs["href"].split("#")[0]
+                    for a in toc_nav.find_all("a")
+                    if "href" in a.attrs
+                ]
+                resolved = [
+                    os.path.normpath(os.path.join(nav_infix, href))
+                    for href in toc_hrefs
+                ]
+                try:
+                    toc_indices = sorted(list(set([
+                        text_suffix.index(path)
+                        for path in resolved
+                        if path in text_suffix
+                    ])))
+                except ValueError:
+                    print(f"[{raw_filename}]: Failed for nav search")
+
+        # fall back to heuristic search
+        if len(toc_indices) == 0:
+            href_occurence = [
+                [
+                    soup.attrs["href"].split("#")[0]
+                    for soup in filter(lambda soup: "href" in soup.attrs, page)
+                ]
+                for page in [
+                    cruise_tag(soup, link_tag, False)
+                    for soup in xhtml_soup
+                ]
+            ]
+            href_occurence_count = [len(item) for item in href_occurence]
+
+            if len(href_occurence_count) != 0:
+                toc_index = href_occurence_count.index(max(href_occurence_count))
+                toc_infix = os.path.split(text_suffix[toc_index])[0]
+                try:
+                    toc_indices = sorted(list(set([
+                        text_suffix.index(os.path.normpath(os.path.join(toc_infix, filename)))
+                        for filename in href_occurence[toc_index]
+                    ])))
+                except ValueError:
+                    print(f"[{raw_filename}]: Failed for toc search")
+
+        # fall back to trivial split
         if len(toc_indices) == 0:
             toc_indices = list(range(local_last_page))
 
