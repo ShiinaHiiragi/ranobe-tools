@@ -342,9 +342,9 @@ config_output_vert   = getitem(global_config,    "out.vert",             False)
 assert is_pathlike(config_src_dir_path), config_src_dir_path
 assert is_pathlike(config_dst_dir_path), config_dst_dir_path
 assert is_pathlike(config_tmp_dir_path) \
-    or config_tmp_dir_path == None, config_tmp_dir_path
+    or config_tmp_dir_path is None, config_tmp_dir_path
 assert is_pathlike(config_dbg_dir_path) \
-    or config_dbg_dir_path == None, config_dbg_dir_path
+    or config_dbg_dir_path is None, config_dbg_dir_path
 for config_file_path in config_local_path:
     assert is_pathlike(config_file_path), config_file_path
 
@@ -352,9 +352,9 @@ for config_file_path in config_local_path:
 config_src_dir_path = os.path.expanduser(config_src_dir_path)
 config_dst_dir_path = os.path.expanduser(config_dst_dir_path)
 config_tmp_dir_path = os.path.expanduser(config_tmp_dir_path) \
-    if config_tmp_dir_path != None else None
+    if config_tmp_dir_path is not None else None
 config_dbg_dir_path = os.path.expanduser(config_dbg_dir_path) \
-    if config_dbg_dir_path != None else None
+    if config_dbg_dir_path is not None else None
 config_local_path = [
     os.path.expanduser(config_file_path)
     for config_file_path in config_local_path
@@ -464,7 +464,7 @@ def cruise_source(base_dir_path, dir_infix=""):
     return epub_list
 
 def check_purity(soup: BeautifulSoup, endpoint=(), map={}):
-    if soup.name == None:
+    if soup.name is None:
         return True
 
     for soup_content in soup.contents:
@@ -475,7 +475,7 @@ def check_purity(soup: BeautifulSoup, endpoint=(), map={}):
 
 def cruise_tag(soup: BeautifulSoup, tag_set: Tuple[str], terminal=True):
     result: List[BeautifulSoup] = []
-    if soup.name == None:
+    if soup.name is None:
         return result
 
     if soup.name in tag_set:
@@ -490,7 +490,7 @@ def cruise_tag(soup: BeautifulSoup, tag_set: Tuple[str], terminal=True):
 
 def cruise_endpoint(soup: BeautifulSoup, endpoint=(), map={}):
     result: List[BeautifulSoup] = []
-    if soup.name == None:
+    if soup.name is None:
         if len(soup.strip()) > 0:
             result.append(soup)
         return result
@@ -536,7 +536,7 @@ def parse_inline(content: BeautifulSoup, config):
 
     parsed: List[str] = []
     images: List[str] = []
-    if content.name == None:
+    if content.name is None:
         parsed.append(str(content).strip())
 
     # potential replacement for <br>
@@ -877,7 +877,7 @@ def main(temp_dir_path):
 
         start_from_one = True
         toc_indices.append(local_last_page)
-        if local_front_page and local_split_page == None and toc_indices[0] != 0:
+        if local_front_page and local_split_page is None and toc_indices[0] != 0:
             toc_indices.insert(0, 0)
             start_from_one = False
 
@@ -896,7 +896,7 @@ def main(temp_dir_path):
             [item[1] for item in parsed_endpoint]
         )]
 
-        if config_dbg_dir_path != None:
+        if config_dbg_dir_path is not None:
             direct_dbg_dir_path = os.path.join(config_dbg_dir_path, epub_infix)
             os.makedirs(direct_dbg_dir_path, exist_ok=True)
             dbg_file_path = os.path.join(direct_dbg_dir_path, out_filename)
@@ -969,7 +969,7 @@ def main(temp_dir_path):
                 html_file_path = os.path.join(md_dir_path, f"{raw_title}.html")
 
                 with open(md_file_path, mode="w", encoding="utf-8") as writable:
-                    if title != None:
+                    if title is not None:
                         writable.write(title + "\n\n")
                     writable.write(chapter_text + "\n")
 
@@ -983,14 +983,14 @@ def main(temp_dir_path):
                     )
 
             else:
-                if title != None:
+                if title is not None:
                     volume_text.append(title)
                 volume_text.append(chapter_text)
             return itertools.chain(*images[left:right])
 
         # write output and copy images
         # if local pages.split are specified
-        if local_split_page != None:
+        if local_split_page is not None:
             page_size = len(local_split_page)
             local_fill_page = len(str(page_size - bool(not start_from_one))) \
                 if local_fill_page < 0 else local_fill_page
@@ -1059,7 +1059,7 @@ def main(temp_dir_path):
 
 # entrance point
 if __name__ == "__main__":
-    if config_tmp_dir_path == None:
+    if config_tmp_dir_path is None:
         with tempfile.TemporaryDirectory() as temp_dir_path:
             main(temp_dir_path)
 
