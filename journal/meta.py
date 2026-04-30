@@ -82,6 +82,12 @@ def _parse(date_str):
     if (m := re.search(r'(\d{4})年(\d{1,2})月(\d{1,2})日', date_str)):
         return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
+def _is_placeholder(img_data, threshold=0.5):
+    img = Image.open(io.BytesIO(img_data)).convert("RGB")
+    pixels = img.getdata()
+    white = sum(1 for r, g, b in pixels if r > 240 and g > 240 and b > 240)
+    return white / len(pixels) > threshold
+
 def _convert(img_data, img_name):
     img = Image.open(io.BytesIO(img_data))
     if img.format != "JPEG":
@@ -156,8 +162,11 @@ def _read_one(item, driver):
 
         response = session.get(img_url)
         img_data, img_name = _convert(response.content, img_name)
-        with open(img_path, "wb") as f:
-            f.write(img_data)
+        if _is_placeholder(img_data):
+            item["cover"] = None
+        else:
+            with open(img_path, "wb") as f:
+                f.write(img_data)
 
     if "シリーズ" in meta:
         item["series"]["name"] = meta["シリーズ"]
