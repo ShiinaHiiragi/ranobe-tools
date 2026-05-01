@@ -179,10 +179,11 @@ if __name__ == "__main__":
         lines.append(f"[url={last_url}]{last_title}[/url]")
         time.sleep(2.5)
 
-    lines.append(f"""已添加 {newly} 个独立词条；无法找到对应 Bangumi 链接的可能原因：
+    lines.append(f"""已添加 {newly} 个独立词条
+无法找到对应 Bangumi 链接的可能原因：
 1. 条目从属于某系列，且截至搜索时（{now.strftime('%Y/%#m/%#d %#H:%M')}）条目尚未创建
 2. 条目记载发售时间不一致，或者列出的是已发售作品的特装版本
-3. 搜索 API 抽风 (bgm38)
+3. 搜索 API 抽风（
 """)
 
     for date in books["items"]:

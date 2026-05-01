@@ -181,3 +181,4 @@ if __name__ == "__main__":
 
     check_info(todo)
     submit_info(todo, books)
+    print("run post.py to update addition info")
