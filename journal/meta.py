@@ -167,7 +167,7 @@ def _read_one(item, driver):
 
         if _is_placeholder(img_data):
             item["cover"] = None
-            print(f"suspected placeholder: {img_path}")
+            print(f"\033[1;31msuspected placeholder: {img_path}\033[0m")
 
     if "シリーズ" in meta:
         item["series"]["name"] = meta["シリーズ"]
@@ -224,11 +224,14 @@ def fill_info(driver, todo):
             series_url = _read_one(item, driver)
 
             # process series
-            if series_url:
-                _popup(driver)
-                driver.get(series_url)
-                time.sleep(8)
-                _read_series(item, driver)
+            # TEMP: not so necessary for now
+            try:
+                if series_url:
+                    _popup(driver)
+                    driver.get(series_url)
+                    time.sleep(8)
+                    _read_series(item, driver)
+            except: ...
 
             _format(item)
             item["stage"] = 1
