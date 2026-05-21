@@ -60,11 +60,16 @@ def cruise_page(driver, index):
         time.sleep(4)
         sub_soup, text = cruise_text(driver)
 
+        series = sub_soup.select_one('a[href^="/novel/series"]')
         texts = []
+
         title = sub_soup.select_one('h1').text
         intro = sub_soup.select_one(INTRO_SELECTOR)
         intro = intro.get_text("\n") if intro else None
         texts.append(text)
+
+        if series:
+            series = series.text
 
         while len(sub_soup.select(NEXT_SELECTOR)) > 0:
             driver.find_element(By.CSS_SELECTOR, NEXT_SELECTOR).click()
@@ -75,6 +80,8 @@ def cruise_page(driver, index):
 
         print(f"{pid}: {title}")
         with open(file_path, mode="w", encoding="utf-8") as writable:
+            if series is not None:
+                writable.write(f"## {series}\n")
             writable.write(f"### {title}\n\n")
             if intro is not None:
                 writable.write(f"{intro}\n\n")
