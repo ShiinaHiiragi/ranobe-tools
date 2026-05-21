@@ -82,6 +82,12 @@ def _parse(date_str):
     if (m := re.search(r'(\d{4})年(\d{1,2})月(\d{1,2})日', date_str)):
         return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
+def _is_placeholder(img_data, threshold=0.8):
+    img = Image.open(io.BytesIO(img_data)).convert("RGB")
+    pixels = img.getdata()
+    white = sum(1 for r, g, b in pixels if r > 240 and g > 240 and b > 240)
+    return white / len(pixels) > threshold
+
 def _convert(img_data, img_name):
     img = Image.open(io.BytesIO(img_data))
     if img.format != "JPEG":
@@ -159,6 +165,10 @@ def _read_one(item, driver):
         with open(img_path, "wb") as f:
             f.write(img_data)
 
+        if _is_placeholder(img_data):
+            item["cover"] = None
+            print(f"\033[1;31msuspected placeholder: {img_path}\033[0m")
+
     if "シリーズ" in meta:
         item["series"]["name"] = meta["シリーズ"]
         series_links = [
@@ -214,11 +224,14 @@ def fill_info(driver, todo):
             series_url = _read_one(item, driver)
 
             # process series
-            if series_url:
-                _popup(driver)
-                driver.get(series_url)
-                time.sleep(8)
-                _read_series(item, driver)
+            # TEMP: not so necessary for now
+            try:
+                if series_url:
+                    _popup(driver)
+                    driver.get(series_url)
+                    time.sleep(8)
+                    _read_series(item, driver)
+            except: ...
 
             _format(item)
             item["stage"] = 1
