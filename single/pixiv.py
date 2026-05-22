@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import NoSuchElementException
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--uid", type=str, default="2948941")
@@ -93,15 +94,17 @@ def cruise_page(driver, index, record):
         panel = sub_soup.select_one('h1').parent
         series = panel.select_one('a[href^="/novel/series"]')
 
-        while len(sub_soup.select(NEXT_SELECTOR)) > 0:
+        while True:
             try:
                 driver.find_element(By.CSS_SELECTOR, NEXT_SELECTOR).click()
             except ElementClickInterceptedException:
                 pack = driver.current_url.split("#")
                 tag = int(pack[1]) + 1 if len(pack) > 1 else 2
                 driver.get(f"{pack[0]}#{tag}")
-            time.sleep(2)
+            except NoSuchElementException:
+                break
 
+            time.sleep(2)
             sub_soup, text = cruise_text(driver)
             texts.append(text)
 
