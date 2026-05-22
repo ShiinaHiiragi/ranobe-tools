@@ -1,8 +1,12 @@
 import os
+import re
 import time
+import json
 import argparse
 
+from typing import List
 from bs4 import BeautifulSoup
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import ElementClickInterceptedException
@@ -25,6 +29,25 @@ INTRO_SELECTOR = 'p[id^="expandable-paragraph"]'
 PARAS_SELECTOR = 'p, h1, h2, h3, h4, h5, h6'
 NEXT_SELECTOR = 'button[class$="footer-pager-next"]'
 
+class Record:
+    def __init__(self, filename="record.json"):
+        self._path = os.path.join(dst_dir, filename)
+        if not os.path.exists(self._path):
+            with open(self._path, mode="w", encoding="utf-8") as writable:
+                writable.write("[]")
+            self._data = []
+        else:
+            with open(self._path, mode="r", encoding="utf-8") as readable:
+                self._data: List[str] = json.load(readable)
+
+    def push(self, item: str):
+        self._data.append(item)
+        with open(self._path, mode="w", encoding="utf-8") as writable:
+            json.dump(self._data, writable)
+
+    def __contains__(self, item: str):
+        return item in self._data
+
 def cruise_text(driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
@@ -38,7 +61,7 @@ def cruise_text(driver):
 
     return soup, texts
 
-def cruise_page(driver, index):
+def cruise_page(driver, index, record):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
 
@@ -54,23 +77,20 @@ def cruise_page(driver, index):
 
     for pid in pids:
         file_path = os.path.join(dst_dir, f"{pid}.md")
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        if pid in record:
             continue
 
         driver.get(text_url(pid))
         time.sleep(4)
         sub_soup, text = cruise_text(driver)
 
-        series = sub_soup.select_one('a[href^="/novel/series"]')
-        texts = []
-
         title = sub_soup.select_one('h1').text
         intro = sub_soup.select_one(INTRO_SELECTOR)
         intro = intro.get_text("\n") if intro else None
-        texts.append(text)
 
-        if series:
-            series = series.text
+        texts = [text]
+        panel = sub_soup.select_one('h1').parent
+        series = panel.select_one('a[href^="/novel/series"]')
 
         while len(sub_soup.select(NEXT_SELECTOR)) > 0:
             try:
@@ -84,15 +104,30 @@ def cruise_page(driver, index):
             sub_soup, text = cruise_text(driver)
             texts.append(text)
 
-        print(f"{pid}: {title}")
+        block = f"### {title}\n\n"
+        if intro is not None:
+            block += f"{intro}\n\n"
+            block += f"---\n\n"
+        block += "\n\n\n\n　◇\n\n\n\n".join(texts).strip()
+
+        if series is not None:
+            series_title = series.text.split(" #")[0]
+            series_id = re.search(r'(\d+)', series.attrs["href"])[1]
+            file_path = os.path.join(dst_dir, f"s{series_id}.md")
+
+            if os.path.exists(file_path):
+                with open(file_path, mode="r", encoding="utf-8") as readable:
+                    lines = readable.read().splitlines()
+                lines.insert(2, block + "\n\n\n")
+                block = "\n".join(lines)
+            else:
+                block = f"## {series_title}\n\n" + block
+
         with open(file_path, mode="w", encoding="utf-8") as writable:
-            if series is not None:
-                writable.write(f"## {series}\n")
-            writable.write(f"### {title}\n\n")
-            if intro is not None:
-                writable.write(f"{intro}\n\n")
-                writable.write(f"---\n\n")
-            writable.write("\n\n\n\n　◇\n\n\n\n".join(texts) + "\n")
+            writable.write(block + "\n")
+
+        print(f"{pid}: {title}")
+        record.push(pid)
 
     return len(soup.select(f'a[href$="p={index+1}"]')) > 0
 
@@ -103,6 +138,8 @@ if __name__ == "__main__":
     driver = webdriver.Chrome()
 
     index = args.srt
+    record = Record()
+
     while True:
         driver.get(page_url(args.uid, index))
         if index == args.srt and args.login:
@@ -111,7 +148,7 @@ if __name__ == "__main__":
             driver.get(page_url(args.uid, index))
 
         time.sleep(4)
-        if cruise_page(driver, index):
+        if cruise_page(driver, index, record):
             index += 1
         else:
             exit(0)
