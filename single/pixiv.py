@@ -49,14 +49,15 @@ class Record:
         return item in self._data
 
 def cruise_text(driver):
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    for br in soup.select("br"):
+        br.replace_with("\n")
 
     paras = soup.select_one('main main').select(PARAS_SELECTOR)
     texts = "\n\n".join([(
-        para.get_text("\n").strip()
+        para.get_text().strip()
         if para.name == "p"
-        else ("#" * (int(para.name[1]) + 2) + " "+ para.get_text("\n").strip())
+        else ("#" * (int(para.name[1]) + 2) + " "+ para.get_text().strip())
     ) for para in paras])
 
     return soup, texts
