@@ -27,6 +27,7 @@ CONFIG = {
     "global": {
         # home dir can be used in "path.*"
         # dir path for epub files
+        # single epub file is also accepted
         # type: str
         "path.src": "~/Downloads/src",
         # dir path for md output
@@ -257,6 +258,7 @@ rf']')
 
 # util lambda functions
 getitem = lambda obj, item, default=None: obj[item] if item in obj else default
+is_epub = lambda path: os.path.isfile(path) and path.endswith(".epub")
 is_pathlike = lambda obj: type(obj) in (str, bytes, os.PathLike)
 extract_href = lambda img: getitem(
     img.attrs,
@@ -454,8 +456,14 @@ def image_info(raw_dir_path, image_suffix, config, handle_spin=None):
 
 # recursive functions
 def cruise_source(base_dir_path, dir_infix=""):
+    if is_epub(base_dir_path) and dir_infix == "":
+        return [{
+            "name": os.path.basename(base_dir_path),
+            "infix": ""
+        }]
+
     epub_list = []
-    current_dir_path = os.path.join(config_src_dir_path, dir_infix)
+    current_dir_path = os.path.join(base_dir_path, dir_infix)
     for unknown_name in os.listdir(current_dir_path):
         unknown_path = os.path.join(current_dir_path, unknown_name)
         if os.path.isdir(unknown_path):
@@ -648,6 +656,12 @@ def parse_endpoint(page: List[BeautifulSoup], config):
 def main(temp_dir_path):
     missing = []
     epub_list = cruise_source(config_src_dir_path)
+
+    if is_epub(config_src_dir_path):
+        src_root = os.path.dirname(config_src_dir_path)
+    else:
+        src_root = config_src_dir_path
+
     for epub_index, epub_info in enumerate(epub_list):
         epub_infix = epub_info["infix"]
         epub_filename = epub_info["name"]
@@ -663,7 +677,7 @@ def main(temp_dir_path):
         zip_filename = raw_filename + ".zip"
         out_filename = raw_filename + ".json"
 
-        direct_src_dir_path = os.path.join(config_src_dir_path, epub_infix)
+        direct_src_dir_path = os.path.join(src_root, epub_infix)
         direct_temp_dir_path = os.path.join(temp_dir_path, epub_infix)
         direct_dst_dir_path = os.path.join(config_dst_dir_path, epub_infix)
 
