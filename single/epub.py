@@ -7,6 +7,7 @@ import zipfile
 import tempfile
 import subprocess
 import itertools
+import argparse
 
 import numpy
 from typing import Any, List, Dict, Tuple
@@ -301,6 +302,17 @@ def render_inline(text: str):
     if text.startswith("<p>") and text.endswith("</p>"):
         text = text[3:-4]
     return text
+
+# override global config
+args_parser = argparse.ArgumentParser(add_help=False)
+args_parser.add_argument("-c", "--config", default=None)
+cli_args, _ = args_parser.parse_known_args()
+
+if cli_args.config is not None:
+    print(cli_args.config)
+    _overrides = json.loads(cli_args.config)
+    assert isinstance(_overrides, dict), _overrides
+    CONFIG["global"].update(_overrides)
 
 # load global config
 assert "global" in CONFIG, CONFIG
