@@ -108,10 +108,12 @@ CONFIG = {
         # invalid for inline img
         # type: Optional[str]
         "image.width": None,
-        # switch to alt if img possess
-        # inline img only if image.spec enabled
+        # switch to alt for inline img
         # type: bool
-        "image.alt": True,
+        "image.ialt": True,
+        # switch to alt for block img
+        # type: bool
+        "image.balt": False,
         # whether to judge inline img
         # seconds of delay might be caused
         # type: bool
@@ -208,7 +210,9 @@ CONFIG = {
             # type: Optional[str]
             "image.width": "50%",
             # type: bool
-            "image.alt": False,
+            "image.ialt": False,
+            # type: bool
+            "image.balt": True,
             # type: bool
             "image.spec": False,
             # type: int
@@ -341,7 +345,8 @@ config_fade_size     = getitem(global_config,   "fade.size",          "0.84em")
 config_fade_top      = getitem(global_config,    "fade.top",            "-6px")
 config_show_image    = getitem(global_config,  "image.show",              True)
 config_image_width   = getitem(global_config, "image.width",              None)
-config_image_alt     = getitem(global_config,   "image.alt",              True)
+config_image_ialt    = getitem(global_config,  "image.ialt",              True)
+config_image_balt    = getitem(global_config,  "image.balt",             False)
 config_image_spec    = getitem(global_config,  "image.spec",              True)
 config_spec_pixel    = getitem(global_config,  "spec.pixel",             32768)
 config_spec_size     = getitem(global_config,   "spec.size",              8192)
@@ -550,7 +555,7 @@ def wrap_inline(page: List[BeautifulSoup], endpoint=(), map={}):
 
 def parse_inline(content: BeautifulSoup, config):
     local_image_width = getitem(config, "image.width", config_image_width)
-    local_image_alt   = getitem(config,   "image.alt",   config_image_alt)
+    local_image_ialt  = getitem(config,  "image.ialt",  config_image_ialt)
     local_show_ruby   = getitem(config,   "ruby.show",   config_show_ruby)
     local_break_text  = getitem(config,  "break.text",  config_break_text)
 
@@ -585,7 +590,7 @@ def parse_inline(content: BeautifulSoup, config):
     elif content.name in image_tag:
         raw_src = extract_href(content)
         alt = getitem(content.attrs, "alt", "")
-        if local_image_alt and len(alt) > 0:
+        if local_image_ialt and len(alt) > 0:
             parsed.append(alt)
         else:
             parsed.append(tagged_image(
@@ -614,8 +619,7 @@ def parse_inline(content: BeautifulSoup, config):
 def parse_endpoint(page: List[BeautifulSoup], config):
     local_show_image  = getitem(config,  "image.show",  config_show_image)
     local_image_width = getitem(config, "image.width", config_image_width)
-    local_image_alt   = getitem(config,   "image.alt",   config_image_alt)
-    local_image_spec  = getitem(config,  "image.spec",  config_image_spec)
+    local_image_balt  = getitem(config,  "image.balt",  config_image_balt)
     local_clear_page  = getitem(config,  "page.clear",  config_clear_page)
 
     parsed: List[List[str]] = []
@@ -632,7 +636,7 @@ def parse_endpoint(page: List[BeautifulSoup], config):
                 alt = getitem(endpoint.attrs, "alt", "")
 
                 # alt are often used for voiced kana such as 「あ゛」
-                if local_image_alt and not local_image_spec and len(alt) > 0:
+                if local_image_balt and len(alt) > 0:
                     parsed[-1].append(alt)
                 else:
                     parsed[-1].append(tagged_image(
