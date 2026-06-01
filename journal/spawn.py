@@ -97,6 +97,9 @@ def _cover(item, sid):
     image_path = os.path.join(imgs_path, item["cover"])
     upload_url = f"https://bgm.tv/subject/{sid}/upload_img"
 
+    if not os.path.exists(image_path):
+        return
+
     response = requests.get(upload_url, headers={
         "Cookie": session_cookie,
         "Origin": "https://bgm.tv",

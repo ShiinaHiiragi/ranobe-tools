@@ -305,7 +305,9 @@ python single/sakura.py
 
 - `journal/init.py`：收集当月轻小说新刊情报
 - `journal/post.py`：将上述情报整理为可在 Bangumi 发布的日志
-- `journal/meta.py`：在 Rakuten 收集并整理新刊相关信息，生成关联报表
+- `journal/meta.py`：在 Rakuten 收集并整理新刊相关信息，请注意检查
+    - 封面是否有占位符未检出
+    - API 是否尚未与网页端同步导致无法被搜索
 
 ### 配置
 
