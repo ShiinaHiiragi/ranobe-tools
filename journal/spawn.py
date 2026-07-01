@@ -85,7 +85,12 @@ def _entry(item):
         data=data
     )
 
-    sid = re.search(r'/subject/(\d+)', response.url)[1]
+    try:
+        sid = re.search(r'/subject/(\d+)', response.url)[1]
+    except TypeError:
+        response.encoding = "utf-8"
+        print(response.text)
+        exit(-1)
     print(f"entry created as {response.url}")
     time.sleep(8)
     return sid
