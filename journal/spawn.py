@@ -45,11 +45,14 @@ def save_data(books):
         json.dump(books, w, ensure_ascii=False, indent=4)
 
 def _entry(item):
+    label_name = item["info"].get("label", "")
+    label_info = "" if label_name == "KADOKAWA 単行本" \
+        else f"\n|书系= {label_name}"
+
     meta = f"""{{{{Infobox animanga/Novel
 |作者= {",".join(item["info"]["author"])}
 |插图= {",".join(item["info"]["illust"])}
-|出版社= {item["info"].get("publisher", "")}
-|书系= {item["info"].get("label", "")}
+|出版社= {item["info"].get("publisher", "")}{label_info}
 |价格= {item["info"].get("price", "")}
 |发售日= {item["info"].get("date", "")}
 |页数= {item["info"].get("pages", "")}
