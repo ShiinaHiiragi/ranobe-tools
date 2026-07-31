@@ -161,8 +161,8 @@ if __name__ == "__main__":
         if log["action"] == "newly-append":
             newly += log["details"]["increment"]
 
-    last_year = now.year
-    last_month = now.month - 1
+    last_year = now_year
+    last_month = now_month - 1
     if last_month == 0:
         last_month = 12
         last_year -= 1
@@ -187,13 +187,13 @@ if __name__ == "__main__":
 """)
 
     for date in books["items"]:
-        lines.append(f"[b][size=25]{now.month}/{date}[/size][/b]")
+        lines.append(f"[b][size=25]{now_month}/{date}[/size][/b]")
         for label in books["items"][date]:
             lines.append(f"[b][size=20]{LABELS[label]['zh']}[/size][/b]")
             for entry in books["items"][date][label]:
                 if (always_update and stage_clear and entry["page"] == "") \
                     or entry["page"] is None:
-                    date_str = f"{now.year}-{now.month:02d}-{int(date):02d}"
+                    date_str = f"{now_year}-{now_month:02d}-{int(date):02d}"
                     response = search(
                         entry["title"],
                         air_date=[f">={date_str}", f"<={date_str}"]
