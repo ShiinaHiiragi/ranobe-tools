@@ -738,6 +738,7 @@ def main(temp_dir_path):
         image_suffix = []
         manifest_map = {}
         nav_suffix = None
+        ncx_suffix = None
         for item in content_manifest:
             if item.name is None:
                 continue
@@ -758,6 +759,12 @@ def main(temp_dir_path):
                 else:
                     text_suffix.append(suffix)
                     manifest_map[item_id] = suffix
+
+            elif media_type.startswith("application/x-dtbncx+xml"):
+                ncx_suffix = os.path.normpath(os.path.join(
+                    root_file_infix,
+                    item.attrs["href"]
+                ))
 
             elif media_type.startswith("image/"):
                 image_suffix.append(os.path.normpath(os.path.join(
@@ -877,6 +884,33 @@ def main(temp_dir_path):
                     ])))
                     toc_method = "NAV"
                 except ValueError: ...
+
+        # fall back to ncx document (EPUB2)
+        if len(toc_indices) == 0 and ncx_suffix is not None:
+            ncx_infix = os.path.split(ncx_suffix)[0]
+            ncx_soup = BeautifulSoup(open(
+                os.path.join(raw_dir_path, ncx_suffix),
+                mode="r",
+                encoding="utf-8"
+            ).read(), "xml")
+
+            ncx_hrefs = [
+                content.attrs["src"].split("#")[0]
+                for content in ncx_soup.find_all("content")
+                if "src" in content.attrs
+            ]
+            resolved = [
+                os.path.normpath(os.path.join(ncx_infix, href))
+                for href in ncx_hrefs
+            ]
+            try:
+                toc_indices = sorted(list(set([
+                    text_suffix.index(path)
+                    for path in resolved
+                    if path in text_suffix
+                ])))
+                toc_method = "NCX"
+            except ValueError: ...
 
         # fall back to heuristic search
         if len(toc_indices) == 0:
