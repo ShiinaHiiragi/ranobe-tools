@@ -250,6 +250,10 @@ rt_tag = ("rt",)
 rb_tag = ("rb",)
 span_tag = ("span",)
 
+# head-level tags that sometimes leak into <body>
+# (e.g. wrapped in <p>) and must never be emitted
+drop_tag = ("title", "meta", "style", "link", "script", "head", "base")
+
 # kana regexp where `・` is removed
 kana = (rf'['
     rf'ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞた'
@@ -563,6 +567,10 @@ def parse_inline(content: BeautifulSoup, config):
     images: List[str] = []
     if content.name is None:
         parsed.append(str(content).strip())
+
+    # drop head-level tags leaked into body
+    elif content.name in drop_tag:
+        ...
 
     # potential replacement for <br>
     elif content.name in break_tag:
