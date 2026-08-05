@@ -180,11 +180,12 @@ def load_progress(progress):
             return data
     return {"line_index": 0, "prev_lines": []}
 
-def save_progress(progress, processed, prev_lines):
+def save_progress(progress, processed, prev_lines, done=False):
     with open(progress, "w", encoding="utf-8") as f:
         json.dump({
             "line_index": processed,
-            "prev_lines": segment_context(prev_lines, PREV_CONTEXT_SIZE)
+            "prev_lines": segment_context(prev_lines, PREV_CONTEXT_SIZE),
+            "done": done
         }, f, ensure_ascii=False, indent=2)
 
 def translate_line(
@@ -256,11 +257,11 @@ def translate_block(
                 log(f"[BLK] matched {len(lines)}=={len(seg)}", depth)
                 for jp_text, zh_text in zip(seg, lines):
                     pair(writable, zh_text, jp_text, origin)
+                    writable.flush()
                     prev_lines.append(zh_text)
                     processed[0] += 1
                     save_progress(progress, processed[0], prev_lines)
 
-                writable.flush()
                 return lines
 
             else:
@@ -364,7 +365,13 @@ def translate(lines, origin, writable, progress):
             origin
         )
 
+    return processed[0], prev_lines
+
 def main(src, dst, progress, name, prev=None, next=None):
+    if load_progress(progress).get("done"):
+        print(f"\n[SKIP] already finished: {dst}")
+        return
+
     with open(src, mode="r", encoding="utf-8") as readable:
         raw_text = readable.read().strip()
         raw_list = [
@@ -393,7 +400,9 @@ def main(src, dst, progress, name, prev=None, next=None):
             writable.flush()
             save_progress(progress, 0, [])
 
-        translate(pure_list, origin, writable, progress)
+        final_index, final_prev = translate(
+            pure_list, origin, writable, progress
+        )
         if not args_raw:
             if prev is not None or next is not None:
                 writable.write(HTML_NAVLINK.format(
@@ -403,6 +412,8 @@ def main(src, dst, progress, name, prev=None, next=None):
                     NEXT_TEXT=("次へ →" if next else "")
                 ))
             writable.write(HTML_SUFFIX)
+        writable.flush()
+        save_progress(progress, final_index, final_prev, done=True)
 
 if __name__ == "__main__":
     if os.path.isdir(args_src):
