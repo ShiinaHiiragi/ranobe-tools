@@ -10,19 +10,21 @@ from markdown_it import MarkdownIt
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 sys.dont_write_bytecode = True
-from utils.const import HTML_PREFIX, HTML_SUFFIX, HTML_STYLE
+from utils.const import HTML_PREFIX, HTML_SUFFIX, HTML_STYLE, HTML_NAVLINK
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--src", type=str, default="~/Downloads/src")
 parser.add_argument("-d", "--dst", type=str, default="~/Downloads/dst")
 parser.add_argument("-r", "--ref", type=str, default="~/Downloads/ref.json")
 parser.add_argument("-m", "--raw", action="store_true")
+parser.add_argument("-n", "--nav", action="store_true")
 
 args = parser.parse_args()
 args_src = os.path.expanduser(args.src)
 args_dst = os.path.expanduser(args.dst)
 args_ref = os.path.expanduser(args.ref)
 args_raw = args.raw
+args_nav = args.nav
 
 proper_list = []
 if os.path.exists(args_ref):
@@ -48,6 +50,12 @@ def render_inline(text: str):
 
 def log(msg, level=0):
     print("  " * level + msg)
+
+def natural_key(text):
+    return [
+        int(chunk) if chunk.isdigit() else chunk.lower()
+        for chunk in re.split(r'(\d+)', text)
+    ]
 
 def pair(writable, zh_text, jp_text, origin):
     if jp_text.startswith("<img"):
@@ -356,7 +364,7 @@ def translate(lines, origin, writable, progress):
             origin
         )
 
-def main(src, dst, progress, name):
+def main(src, dst, progress, name, prev=None, next=None):
     with open(src, mode="r", encoding="utf-8") as readable:
         raw_text = readable.read().strip()
         raw_list = [
@@ -387,18 +395,37 @@ def main(src, dst, progress, name):
 
         translate(pure_list, origin, writable, progress)
         if not args_raw:
+            if prev is not None or next is not None:
+                writable.write(HTML_NAVLINK.format(
+                    PREV_LINK=("" if prev is None else f"{prev}.html"),
+                    NEXT_LINK=("" if next is None else f"{next}.html"),
+                    PREV_TEXT=("← 前へ" if prev else ""),
+                    NEXT_TEXT=("次へ →" if next else "")
+                ))
             writable.write(HTML_SUFFIX)
 
 if __name__ == "__main__":
     if os.path.isdir(args_src):
         os.makedirs(args_dst, exist_ok=True)
-        for filename in os.listdir(args_src):
+        filenames = os.listdir(args_src)
+        if args_nav:
+            filenames = sorted(filenames, key=natural_key)
+
+        for index, filename in enumerate(filenames):
             pure = os.path.splitext(filename)[0]
+            prev = next = None
+            if args_nav:
+                prev = os.path.splitext(filenames[index - 1])[0] \
+                    if index > 0 else None
+                next = os.path.splitext(filenames[index + 1])[0] \
+                    if index + 1 < len(filenames) else None
             main(
                 os.path.join(args_src, filename),
                 os.path.join(args_dst, f"{pure}.{'md' if args_raw else 'html'}"),
                 os.path.join(args_dst, f"{pure}.json"),
-                pure
+                pure,
+                prev,
+                next
             )
 
     elif os.path.isfile(args_src):

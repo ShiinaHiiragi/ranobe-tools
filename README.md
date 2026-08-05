@@ -286,6 +286,7 @@ python single/ocr.py \
     - `-d` / `--dst`：输出目录路径
     - `-r` / `--ref`：术语表文件路径
     - `-m` / `--raw`：以 Markdown 形式输出结果，默认以 HTML 形式输出
+    - `-n` / `--nav`：以 HTML 形式输出时是否附带超链接，默认不添加
 
 4. 可调节常量
     - `MODEL_NAME`：模型名称
