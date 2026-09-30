@@ -34,6 +34,11 @@ dotenv.load_dotenv(os.path.join(root_path, ".env"))
 access_token = os.environ.get("ACCESS_TOKEN", "")
 user_id = os.environ.get("USER_ID", "")
 user_agent = os.environ.get("USER_AGENT", "")
+httpx_proxy = os.environ.get("HTTPX_PROXY", "")
+proxies = {
+    "http": httpx_proxy,
+    "https": httpx_proxy
+} if httpx_proxy else None
 
 now = datetime.datetime.now()
 limit = 12 * 60 * 60 * 1000
@@ -79,6 +84,7 @@ def find_uid(title, results):
 def search(title: str, **kwargs) -> dict:
     return requests.post(
         f"https://api.bgm.tv/v0/search/subjects",
+        proxies=proxies,
         headers={
             "Authorization": f"Bearer {access_token}",
             "User-Agent": f"{user_id}/blog-info-search"
@@ -169,7 +175,11 @@ if __name__ == "__main__":
 
     if last_post != "":
         last_url = f"https://bgm.tv/blog/{last_post}"
-        response = requests.get(last_url, headers={"User-Agent": user_agent})
+        response = requests.get(
+            last_url,
+            headers={"User-Agent": user_agent},
+            proxies=proxies
+        )
         response.encoding = "utf-8"
 
         soup = BeautifulSoup(response.text, "html.parser")
