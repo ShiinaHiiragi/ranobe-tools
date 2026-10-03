@@ -32,6 +32,12 @@ form_hash = os.environ.get("FORM_HASH", "")
 user_agent = os.environ.get("USER_AGENT", "")
 session_cookie = os.environ.get("SESSION_COOKIE", "")
 
+httpx_proxy = os.environ.get("HTTPX_PROXY", "")
+proxies = {
+    "http": httpx_proxy,
+    "https": httpx_proxy
+} if httpx_proxy else None
+
 def save_info(todo):
     with open(info_path, mode="w", encoding="utf-8") as w:
         json.dump(todo, w, ensure_ascii=False, indent=4)
@@ -85,7 +91,8 @@ def _entry(item):
     response = requests.post(
         "https://bgm.tv/new_subject/1",
         headers=headers,
-        data=data
+        data=data,
+        proxies=proxies
     )
 
     try:
@@ -112,8 +119,8 @@ def _cover(item, sid):
         "Cookie": session_cookie,
         "Origin": "https://bgm.tv",
         "Referer": f"https://bgm.tv/subject/{sid}",
-        "User-Agent": user_agent
-    })
+        "User-Agent": user_agent,
+    }, proxies=proxies)
 
     response.encoding = "utf-8"
     soup = BeautifulSoup(response.text, "html.parser")
@@ -134,7 +141,8 @@ def _cover(item, sid):
             upload_url,
             data={"formhash": form_hash, "submit": "上传图片"},
             files={"picfile": ("cover.jpg", rb, "image/jpeg")},
-            headers=headers
+            headers=headers,
+            proxies=proxies
         )
 
         response.encoding = "utf-8"

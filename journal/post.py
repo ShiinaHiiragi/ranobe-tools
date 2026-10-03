@@ -34,6 +34,7 @@ dotenv.load_dotenv(os.path.join(root_path, ".env"))
 access_token = os.environ.get("ACCESS_TOKEN", "")
 user_id = os.environ.get("USER_ID", "")
 user_agent = os.environ.get("USER_AGENT", "")
+
 httpx_proxy = os.environ.get("HTTPX_PROXY", "")
 proxies = {
     "http": httpx_proxy,
