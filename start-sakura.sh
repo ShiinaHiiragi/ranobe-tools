@@ -56,5 +56,5 @@ except (requests.RequestException, ValueError, RuntimeError) as exc:
 print("Sakura is ready and will stay loaded until stopped.")
 PY
 
-printf '\nTranslate with:\n  cd %q\n  source .venv/bin/activate\n  python single/sakura.py -s /path/to/input -d /path/to/output\n' "$ROOT"
+printf '\nTranslate with:\n  cd %q\n  source .venv/bin/activate\n  python single/sakura.py -s /data/ichinoe/ranobe-tools/src -d /data/ichinoe/ranobe-tools/dst\n' "$ROOT"
 printf '\nStop and release model memory:\n  systemctl --user stop ollama-sakura.service\n'
