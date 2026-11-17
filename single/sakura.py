@@ -147,13 +147,17 @@ def call_sakura(prompt, depth):
             json={
                 "model": MODEL_NAME,
                 "prompt": prompt,
-                "temperature": 0.2,
-                "top_p": 0.9,
-                "max_tokens": SEGMENT_SIZE * 2,
+                "raw": True,
+                "options": {
+                    "temperature": 0.2,
+                    "top_p": 0.9,
+                    "num_predict": SEGMENT_SIZE * 2,
+                    "num_ctx": 4096,
+                },
                 "stream": False,
                 "keep_alive": -1
             },
-            timeout=30
+            timeout=(10, 180)
         )
 
         resp.raise_for_status()
