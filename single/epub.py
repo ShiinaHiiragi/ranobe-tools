@@ -664,6 +664,9 @@ def parse_endpoint(page: List[BeautifulSoup], config):
 
     return parsed, images
 
+def is_origin(line):
+    return re.search(kana, line) is not None
+
 # main function
 def main(temp_dir_path):
     missing = []
@@ -981,10 +984,7 @@ def main(temp_dir_path):
                 json.dump(parsed_pages, _writable, ensure_ascii=False, indent=4)
 
         lined_pages = [["".join(para) for para in page] for page in parsed_pages]
-        marked_pages = [[(
-            line,
-            re.search(kana, line) is not None
-        ) for line in page] for page in lined_pages]
+        marked_pages = [[(line, is_origin(line)) for line in page] for page in lined_pages]
 
         faded_pages = [[((
                 f"<p style=\""
