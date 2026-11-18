@@ -8,9 +8,13 @@ import tempfile
 import subprocess
 import itertools
 import argparse
+import math
+import unicodedata
 
 import numpy
 from typing import Any, List, Dict, Tuple
+from dataclasses import dataclass, replace
+from html.parser import HTMLParser
 
 from PIL import Image
 from bs4 import BeautifulSoup
@@ -624,7 +628,7 @@ def parse_inline(content: BeautifulSoup, config):
     return parsed, images
 
 # non-recursive functions
-def parse_endpoint(page: List[BeautifulSoup], config):
+def parse_endpoint(page: List[BeautifulSoup], config, origin_inputs=None):
     local_show_image  = getitem(config,  "image.show",  config_show_image)
     local_image_width = getitem(config, "image.width", config_image_width)
     local_image_balt  = getitem(config,  "image.balt",  config_image_balt)
@@ -661,11 +665,212 @@ def parse_endpoint(page: List[BeautifulSoup], config):
 
         if local_clear_page and len(parsed[-1]) == 0:
             del parsed[-1]
+        elif origin_inputs is not None:
+            origin_inputs.append(str(endpoint))
 
     return parsed, images
 
-def is_origin(line):
-    return re.search(kana, line) is not None
+kana_pattern = re.compile('[ぁ-ゖゝ-ゟァ-ヺヽ-ヿㇰ-ㇿ]')
+han_pattern = re.compile('[㐀-䶿一-鿿𠀀-\U0002fa1f]')
+kana_scale = 8.0
+long_han = 6
+
+class VisibleText(HTMLParser):
+    def __init__(self, source):
+        super().__init__(convert_charrefs=True)
+        self.main, self.ruby, self.images = ([], [], [])
+        self.rt = self.hidden = 0
+        self.feed(source)
+        self.close()
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style', 'head'):
+            self.hidden += 1
+        if tag in ('rt', 'rp'):
+            self.rt += 1
+        if tag == 'img':
+            attrs = dict(attrs)
+            if attrs.get('src'):
+                self.images.append(attrs['src'])
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style', 'head'):
+            self.hidden = max(0, self.hidden - 1)
+        if tag in ('rt', 'rp'):
+            self.rt = max(0, self.rt - 1)
+
+    def handle_data(self, text):
+        if not self.hidden:
+            (self.ruby if self.rt else self.main).append(text)
+
+@dataclass(frozen=True)
+class OriginEvidence:
+    text: str
+    reading: str
+    images: tuple
+    kana: int
+    han: int
+    score: float
+    active: bool
+
+def parse_origin(source):
+    v = VisibleText(source)
+    text = unicodedata.normalize('NFKC', ''.join(v.main))
+    reading = unicodedata.normalize('NFKC', ''.join(v.ruby))
+    k, h = (len(kana_pattern.findall(text)), len(han_pattern.findall(text)))
+    active = bool(k or h or kana_pattern.search(reading))
+    if not active:
+        score = -20.0
+    elif k:
+        score = kana_scale * k / (k + h)
+    elif kana_pattern.search(reading):
+        score = kana_scale
+    else:
+        score = -4.0 if h >= long_han else -0.1
+    return OriginEvidence(text, reading, tuple(v.images), k, h, score, active)
+
+def decode_origin(items, switch):
+    if not items:
+        return []
+    change, stay = (math.log(switch), math.log(1 - switch))
+    prev = [0.0, 0.0]
+    back = []
+    for item in items:
+        current, parents = ([], [])
+        for state in (0, 1):
+            candidates = [
+                prev[s] + (stay if s == state else change)
+                for s in (0, 1)
+            ]
+            parent = max(range(2), key=lambda s: candidates[s])
+            current.append(candidates[parent] + (item.score if state else 0.0))
+            parents.append(parent)
+        back.append(parents)
+        prev = current
+    state = int(prev[1] > prev[0])
+    result = []
+    for parents in reversed(back):
+        result.append(bool(state))
+        state = parents[state]
+    return result[::-1]
+
+class RubyBase(VisibleText):
+    def __init__(self, source):
+        self.depth, self.base = (0, [])
+        super().__init__(source)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'ruby':
+            self.depth += 1
+        super().handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        super().handle_endtag(tag)
+        if tag == 'ruby':
+            self.depth = max(0, self.depth - 1)
+
+    def handle_data(self, text):
+        if self.depth and (not self.rt) and (not self.hidden):
+            self.base.append(text)
+        super().handle_data(text)
+
+@dataclass(frozen=True)
+class OriginDecision:
+    role: str
+    score: float | None
+
+    @property
+    def fade(self):
+        return self.role == 'S'
+
+def score_origin(item, source):
+    k, h = (item.kana, item.han)
+    if not k:
+        if kana_pattern.search(item.reading):
+            base = unicodedata.normalize('NFKC', ''.join(RubyBase(source).base))
+            k = 0.5 * min(
+                len(han_pattern.findall(base)),
+                len(kana_pattern.findall(item.reading))
+            )
+    if not k:
+        return -1.0 if h >= 6 else -0.1 if h else 0.0
+    other = sum((c.isalnum() for c in item.text)) - item.kana - h
+    return 8 * k / max(1, k + h + other) - 1.0
+
+def origin_anchor(item):
+    if item.score >= 3:
+        return True
+    if item.score <= -1 and item.han >= 6:
+        return False
+    return None
+
+def count_origin(items):
+    anchors = [origin_anchor(x) for x in items]
+    pairs = [
+        (a, b) for a, b in zip(anchors, anchors[1:])
+        if a is not None and b is not None
+    ]
+    return (sum((a != b for a, b in pairs)), len(pairs))
+
+def analyze_origin(pages):
+    observations = [[parse_origin(x) for x in page] for page in pages]
+    sequences, indices = ([], [])
+    for source_page, page in zip(pages, observations):
+        idx = [i for i, x in enumerate(page) if x.text.strip()]
+        seq = [
+            replace(page[i], score=score_origin(page[i], source_page[i]))
+            for i in idx
+        ]
+        alnum = [any((c.isalnum() for c in x.text)) for x in seq]
+        quoted = [
+            any((unicodedata.category(c) in ('Ps', 'Pi') for c in x.text)) \
+                and any((unicodedata.category(c) in ('Pe', 'Pf') for c in x.text))
+            for x in seq
+        ]
+        keep = [
+            a or quoted[i] or (i > 0 and (not alnum[i - 1])) or (i + 1 < len(seq) and (not alnum[i + 1]))
+            for i, a in enumerate(alnum)
+        ]
+        indices.append([i for i, k in zip(idx, keep) if k])
+        seq = [x for x, k in zip(seq, keep) if k]
+        normalized = [re.sub('\\s+', '', x.text) for x in seq]
+        copies = [
+            i > 0 \
+                and normalized[i] == normalized[i - 1] \
+                or (i + 1 < len(seq) and normalized[i] == normalized[i + 1])
+            for i in range(len(seq))
+        ]
+        anchors = [
+            origin_anchor(x)
+            for x, copied in zip(seq, copies)
+            if not copied
+        ]
+        if anchors.count(True) >= 2 and anchors.count(False) >= 2:
+            seq = [replace(x, score=0.0) if copied else x for x, copied in zip(seq, copies)]
+        sequences.append(seq)
+    counts = [count_origin(seq) for seq in sequences]
+    total = sum((n for _, n in counts))
+    prior = (sum((s for s, _ in counts)) + 1) / (total + 2)
+    weight = min(64.0, total)
+    cap = 1 / (1 + math.exp(-1.25))
+    output = []
+    for page, seq, idx, (changes, n) in zip(observations, sequences, indices, counts):
+        switch = (changes + weight * prior + 1) / (n + weight + 2)
+        anchors = [a for x in seq if (a := origin_anchor(x)) is not None]
+        if len(anchors) >= 2 and (all(anchors) or not any((x.kana or kana_pattern.search(x.reading) for x in seq))):
+            switch = 0.05
+        switch = min(cap, max(1 - cap, switch))
+        labels = decode_origin(seq, switch)
+        result = [OriginDecision('U', None) for _ in page]
+        for i, item, label in zip(idx, seq, labels):
+            result[i] = OriginDecision('S' if label else 'T', item.score)
+        output.append(result)
+    return output
+
+def is_origin(line, decision=None):
+    if decision is None:
+        decision = analyze_origin([[line]])[0][0]
+    return decision.fade
 
 # main function
 def main(temp_dir_path):
@@ -968,7 +1173,12 @@ def main(temp_dir_path):
             image_map
         ) for soup in xhtml_soup]
 
-        parsed_endpoint = [parse_endpoint(page, filter_config) for page in pages]
+        origin_inputs = [[] for _ in pages]
+        parsed_endpoint = [
+            parse_endpoint(page, filter_config, inputs)
+            for page, inputs in zip(pages, origin_inputs)
+        ]
+        origin_decisions = analyze_origin(origin_inputs)
         parsed_pages = [item[0] for item in parsed_endpoint]
         parsed_images = [[os.path.normpath(os.path.join(
             os.path.split(text_suffix[index])[0], sub_item
@@ -984,7 +1194,10 @@ def main(temp_dir_path):
                 json.dump(parsed_pages, _writable, ensure_ascii=False, indent=4)
 
         lined_pages = [["".join(para) for para in page] for page in parsed_pages]
-        marked_pages = [[(line, is_origin(line)) for line in page] for page in lined_pages]
+        marked_pages = [[
+            (line, None if decision.role == "U" else is_origin(line, decision))
+            for line, decision in zip(page, decisions)
+        ] for page, decisions in zip(lined_pages, origin_decisions)]
 
         faded_pages = [[((
                 f"<p style=\""
@@ -992,8 +1205,9 @@ def main(temp_dir_path):
                 f"font-size: {local_fade_size}; "
                 f"top: {local_fade_top}; "
                 f"\">{render_inline(line)}</p>"
-            ) if local_fade_kana == is_jp else line
-        ) for line, is_jp in page] for page in marked_pages]
+            ) if (local_fade_kana is not None and is_original is not None
+                  and local_fade_kana == is_original) else line
+        ) for line, is_original in page] for page in marked_pages]
         merged_pages = ["\n\n".join(page) for page in faded_pages]
 
         image_subset = set()
